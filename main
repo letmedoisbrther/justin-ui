@@ -10,7 +10,7 @@ local Mobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEn
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
 
-local PINK = Color3.fromRGB(255, 80, 100)
+local PINK  = Color3.fromRGB(255, 0, 127)
 local WHITE = Color3.fromRGB(255, 255, 255)
 local BLACK = Color3.fromRGB(0, 0, 0)
 local DARK1 = Color3.fromRGB(10, 10, 10)
@@ -181,7 +181,7 @@ local function MakeCorner(parent, radius)
 end
 
 local function MakeStroke(parent, color, thickness)
-    Library:Create("UIStroke", { Parent = parent, Color = color or STROKE, Thickness = thickness or 0.5 })
+    return Library:Create("UIStroke", { Parent = parent, Color = color or STROKE, Thickness = thickness or 0.5 })
 end
 
 function Library:NewRows(Parent, Title, Desc)
@@ -1502,43 +1502,45 @@ function Library:Window(Args)
             PageService:JumpTo(Home)
         end)
 
-        local ToggleScreen = Library:Create("ScreenGui", {
-            Name = "Xova", Parent = Library:Parent(),
-            ZIndexBehavior = Enum.ZIndexBehavior.Global,
-            IgnoreGuiInset = true
-        })
+        if Mobile then
+            local ToggleScreen = Library:Create("ScreenGui", {
+                Name = "XovaPillow", Parent = Library:Parent(),
+                ZIndexBehavior = Enum.ZIndexBehavior.Global,
+                IgnoreGuiInset = true
+            })
 
-        local Pillow = Library:Create("TextButton", {
-            Name = "Pillow", Parent = ToggleScreen,
-            BackgroundColor3 = DARK2, BorderSizePixel = 0,
-            Position = UDim2.new(0.06, 0, 0.15, 0),
-            Size = UDim2.new(0, 50, 0, 50),
-            Text = ""
-        })
-        MakeCorner(Pillow, UDim.new(1, 0))
+            local Pillow = Library:Create("TextButton", {
+                Name = "Pillow", Parent = ToggleScreen,
+                BackgroundColor3 = DARK2, BorderSizePixel = 0,
+                Position = UDim2.new(0.06, 0, 0.15, 0),
+                Size = UDim2.new(0, 50, 0, 50),
+                Text = ""
+            })
+            MakeCorner(Pillow, UDim.new(1, 0))
 
-        Library:Create("ImageLabel", {
-            Name = "Logo", Parent = Pillow,
-            AnchorPoint = ANCHOR_CENTER,
-            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            Size = UDim2.new(0.5, 0, 0.5, 0),
-            Image = "rbxassetid://134528790539968"
-        })
+            Library:Create("ImageLabel", {
+                Name = "Logo", Parent = Pillow,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0.5, 0, 0.5, 0),
+                Image = "rbxassetid://134528790539968"
+            })
 
-        Library:Draggable(Pillow)
+            Library:Draggable(Pillow)
 
-        Pillow.MouseButton1Click:Connect(function()
-            Background.Visible = not Background.Visible
-        end)
-
-        UserInputService.InputBegan:Connect(function(Input, Processed)
-            if Processed then return end
-            if Input.KeyCode == Enum.KeyCode.LeftControl then
+            Pillow.MouseButton1Click:Connect(function()
                 Background.Visible = not Background.Visible
-            end
-        end)
+            end)
+        else
+            UserInputService.InputBegan:Connect(function(Input, Processed)
+                if Processed then return end
+                if Input.KeyCode == Enum.KeyCode.K then
+                    Background.Visible = not Background.Visible
+                end
+            end)
+        end
 
         local Scaler = Library:Create("UIScale", {
             Parent = Xova,
