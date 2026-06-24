@@ -10,7 +10,7 @@ local Mobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEn
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
 
-local PINK  = Color3.fromRGB(220, 30, 30)
+local PINK = Color3.fromRGB(255, 80, 100)
 local WHITE = Color3.fromRGB(255, 255, 255)
 local BLACK = Color3.fromRGB(0, 0, 0)
 local DARK1 = Color3.fromRGB(10, 10, 10)
