@@ -744,7 +744,8 @@ function Library:Window(Args)
             local Highlight = Library:Create("Frame", {
                 Name = "Highligh", Parent = ToggleBg,
                 AnchorPoint = ANCHOR_CENTER,
-                BackgroundColor3 = PINK, BorderColor3 = BLACK, BorderSizePixel = 0,
+                BackgroundColor3 = PINK, BackgroundTransparency = 1,
+                BorderColor3 = BLACK, BorderSizePixel = 0,
                 Position = UDim2.new(0.5, 0, 0.5, 0),
                 Size = UDim2.new(0, 20, 0, 20)
             })
@@ -758,7 +759,8 @@ function Library:Window(Args)
                 BorderColor3 = BLACK, BorderSizePixel = 0,
                 Position = UDim2.new(0.5, 0, 0.5, 0),
                 Size = UDim2.new(0.45, 0, 0.45, 0),
-                Image = "rbxassetid://86682186031062"
+                Image = "rbxassetid://86682186031062",
+                ImageTransparency = 1
             })
 
             local ToggleClick = Library:MakeButton(ToggleBg)
