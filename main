@@ -185,13 +185,16 @@ local function MakeStroke(parent, color, thickness)
 end
 
 function Library:NewRows(Parent, Title, Desc)
+    local hasDesc = Desc and Desc ~= ""
+    local rowHeight = hasDesc and 40 or 28
+
     local Rows = Library:Create("Frame", {
         Name = "Rows",
         Parent = Parent,
         BackgroundColor3 = DARK3,
         BorderColor3 = BLACK,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 40)
+        Size = UDim2.new(1, 0, 0, rowHeight)
     })
     MakeStroke(Rows)
     MakeCorner(Rows)
@@ -271,20 +274,33 @@ function Library:NewRows(Parent, Title, Desc)
     })
     MakeGradient(TitleLabel, GRAD_WHITE)
 
-    Library:Create("TextLabel", {
-        Name = "Desc", Parent = Text,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 0, 0, 10),
-        Font = Enum.Font.GothamMedium,
-        RichText = true, Text = Desc,
-        TextColor3 = WHITE, TextSize = 10,
-        TextStrokeTransparency = 0.7,
-        TextTransparency = 0.6,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
+    if hasDesc then
+        Library:Create("TextLabel", {
+            Name = "Desc", Parent = Text,
+            AnchorPoint = ANCHOR_CENTER,
+            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+            BorderColor3 = BLACK, BorderSizePixel = 0,
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = UDim2.new(1, 0, 0, 10),
+            Font = Enum.Font.GothamMedium,
+            RichText = true, Text = Desc,
+            TextColor3 = WHITE, TextSize = 10,
+            TextStrokeTransparency = 0.7,
+            TextTransparency = 0.6,
+            TextXAlignment = Enum.TextXAlignment.Left
+        })
+    else
+        Library:Create("TextLabel", {
+            Name = "Desc", Parent = Text,
+            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+            BorderColor3 = BLACK, BorderSizePixel = 0,
+            Size = UDim2.new(0, 0, 0, 0),
+            Visible = false,
+            Font = Enum.Font.GothamMedium,
+            RichText = true, Text = "",
+            TextColor3 = WHITE, TextSize = 10
+        })
+    end
 
     return Rows
 end
@@ -412,7 +428,6 @@ function Library:Window(Args)
         TextStrokeTransparency = 0.7, TextTransparency = 0.6,
         TextXAlignment = Enum.TextXAlignment.Left
     })
-
 
     local Scale = Library:Create("Frame", {
         Name = "Scale", Parent = Background,
