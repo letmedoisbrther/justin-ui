@@ -378,7 +378,7 @@ function Library:Window(Args)
         Name = "Info", Parent = HeadScale,
         BackgroundColor3 = WHITE, BackgroundTransparency = 1,
         BorderColor3 = BLACK, BorderSizePixel = 0,
-        Size = UDim2.new(1, -100, 0, 28)
+        Size = UDim2.new(1, 0, 0, 28)
     })
     Library:Create("UIListLayout", {
         Parent = Info,
@@ -413,72 +413,6 @@ function Library:Window(Args)
         TextXAlignment = Enum.TextXAlignment.Left
     })
 
-    local Expires = Library:Create("Frame", {
-        Name = "Expires", Parent = HeadScale,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Position = UDim2.new(0.787233949, 0, -3.5, 0),
-        Size = UDim2.new(0, 100, 0, 40)
-    })
-    Library:Create("UIListLayout", {
-        Parent = Expires,
-        Padding = UDim.new(0, 10),
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        VerticalAlignment = Enum.VerticalAlignment.Center
-    })
-
-    local ExpiresAsset = Library:Create("ImageLabel", {
-        Name = "Asset", Parent = Expires,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Size = UDim2.new(0, 20, 0, 20),
-        Image = "rbxassetid://100865348188048",
-        ImageColor3 = PINK, LayoutOrder = 1
-    })
-    MakeGradient(ExpiresAsset, GRAD_WHITE)
-
-    local ExpiresInfo = Library:Create("Frame", {
-        Name = "Info", Parent = Expires,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 0, 0, 28)
-    })
-    Library:Create("UIListLayout", {
-        Parent = ExpiresInfo,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        SortOrder = Enum.SortOrder.LayoutOrder
-    })
-
-    local ExpiresTitle = Library:Create("TextLabel", {
-        Name = "Title", Parent = ExpiresInfo,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 0, 0, 14),
-        Font = Enum.Font.GothamSemibold, RichText = true, Text = "Expires at",
-        TextColor3 = PINK, TextSize = 13,
-        TextStrokeTransparency = 0.7,
-        TextXAlignment = Enum.TextXAlignment.Right
-    })
-    MakeGradient(ExpiresTitle, GRAD_WHITE)
-
-    local THETIME = Library:Create("TextLabel", {
-        Name = "Time", Parent = ExpiresInfo,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderColor3 = BLACK, BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 0, 0, 10),
-        Font = Enum.Font.GothamMedium, RichText = true, Text = "00:00:00 Hours",
-        TextColor3 = WHITE, TextSize = 10,
-        TextStrokeTransparency = 0.7, TextTransparency = 0.6,
-        TextXAlignment = Enum.TextXAlignment.Right
-    })
 
     local Scale = Library:Create("Frame", {
         Name = "Scale", Parent = Background,
@@ -1553,9 +1487,6 @@ function Library:Window(Args)
             end)
         end
 
-        function Library:SetTimeValue(val)
-            THETIME.Text = val
-        end
     end
 
     return Window
