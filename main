@@ -797,7 +797,7 @@ function Library:Window(Args)
                 OnChanged(Data.Value)
             end)
 
-            OnChanged(Data.Value)
+            if Data.Value then OnChanged(Data.Value) end
             return Attr
         end
 
