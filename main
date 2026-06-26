@@ -64,6 +64,7 @@ local TI_02_LIN_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDir
 local TI_025_EXP_OUT = TweenInfo.new(0.25, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 local TI_03_DRAG = TweenInfo.new(0.3)
 local TI_25_BACK_OUT = TweenInfo.new(2.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local TI_04_EXP_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
 function Library:Parent()
     if not RunService:IsStudio() then
@@ -325,6 +326,10 @@ function Library:Window(Args)
     })
     MakeCorner(Background, UDim.new(0, 8))
 
+    local isMinimized = false
+    local normalSize = UDim2.new(0, 500, 0, 350)
+    local minimizedSize = UDim2.new(0, 500, 0, 40)
+
     local dropdownInstances = {}
 
     function Library:IsDropdownOpen()
@@ -370,6 +375,71 @@ function Library:Window(Args)
         ColorSequenceKeypoint.new(1, GRAY3)
     })
 
+    local WindowBtns = Library:Create("Frame", {
+        Name = "WindowBtns", Parent = Header,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 50, 0, 20),
+        ZIndex = 10
+    })
+    Library:Create("UIListLayout", {
+        Parent = WindowBtns,
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder
+    })
+
+    local MinimizeBtn = Library:Create("TextButton", {
+        Name = "Minimize", Parent = WindowBtns,
+        BackgroundColor3 = DARK3, BorderSizePixel = 0,
+        Size = UDim2.new(0, 18, 0, 18),
+        Font = Enum.Font.GothamBold,
+        Text = "—",
+        TextColor3 = GRAY1, TextSize = 10,
+        ZIndex = 10, LayoutOrder = 1
+    })
+    MakeCorner(MinimizeBtn, UDim.new(0, 4))
+    MakeStroke(MinimizeBtn, STROKE2, 0.5)
+
+    local CloseBtn = Library:Create("TextButton", {
+        Name = "Close", Parent = WindowBtns,
+        BackgroundColor3 = DARK3, BorderSizePixel = 0,
+        Size = UDim2.new(0, 18, 0, 18),
+        Font = Enum.Font.GothamBold,
+        Text = "✕",
+        TextColor3 = PINK, TextSize = 11,
+        ZIndex = 10, LayoutOrder = 2
+    })
+    MakeCorner(CloseBtn, UDim.new(0, 4))
+    MakeStroke(CloseBtn, STROKE3, 0.5)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        Tween(Background, TI_04_EXP_OUT, {
+            Position = UDim2.new(0.5, 0, 1.2, 0),
+            BackgroundTransparency = 1
+        })
+        task.delay(0.4, function()
+            Background.Visible = false
+            Background.Position = UDim2.new(0.5, 0, 0.5, 0)
+            Background.BackgroundTransparency = 0
+        end)
+    end)
+
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            Tween(Background, TI_04_EXP_OUT, { Size = minimizedSize })
+            MinimizeBtn.Text = "▢"
+        else
+            Tween(Background, TI_04_EXP_OUT, { Size = normalSize })
+            MinimizeBtn.Text = "—"
+        end
+    end)
+
     local HeadScale = Library:Create("Frame", {
         Name = "HeadScale", Parent = Header,
         AnchorPoint = Vector2.new(1, 0),
@@ -387,7 +457,7 @@ function Library:Window(Args)
     Library:Create("UIPadding", {
         Parent = HeadScale,
         PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15),
-        PaddingRight = UDim.new(0, 15), PaddingTop = UDim.new(0, 20)
+        PaddingRight = UDim.new(0, 60), PaddingTop = UDim.new(0, 20)
     })
 
     local Info = Library:Create("Frame", {
@@ -661,15 +731,14 @@ function Library:Window(Args)
             })
 
             local Line = Library:Create("Frame", {
-            Name = "Line",
-            Parent = SepHolder,
-            AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundColor3 = Color3.fromRGB(255, 0, 127),
-            BorderSizePixel = 0,
-            Position = UDim2.new(0, 0, 0.5, 0),
-            Size = UDim2.new(1, 0, 0, 1)
+                Name = "Line",
+                Parent = SepHolder,
+                AnchorPoint = Vector2.new(0, 0.5),
+                BackgroundColor3 = Color3.fromRGB(255, 0, 127),
+                BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0.5, 0),
+                Size = UDim2.new(1, 0, 0, 1)
             })
-
             MakeGradient(Line, ColorSequence.new{
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
                 ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 127)),
@@ -1511,13 +1580,41 @@ function Library:Window(Args)
             Library:Draggable(Pillow)
 
             Pillow.MouseButton1Click:Connect(function()
-                Background.Visible = not Background.Visible
+                if Background.Visible then
+                    Tween(Background, TI_04_EXP_OUT, {
+                        Position = UDim2.new(0.5, 0, 1.5, 0)
+                    })
+                    task.delay(0.4, function()
+                        Background.Visible = false
+                        Background.Position = UDim2.new(0.5, 0, 0.5, 0)
+                    end)
+                else
+                    Background.Position = UDim2.new(0.5, 0, 1.5, 0)
+                    Background.Visible = true
+                    Tween(Background, TI_04_EXP_OUT, {
+                        Position = UDim2.new(0.5, 0, 0.5, 0)
+                    })
+                end
             end)
         else
             UserInputService.InputBegan:Connect(function(Input, Processed)
                 if Processed then return end
                 if Input.KeyCode == Enum.KeyCode.K then
-                    Background.Visible = not Background.Visible
+                    if Background.Visible then
+                        Tween(Background, TI_04_EXP_OUT, {
+                            Position = UDim2.new(0.5, 0, 1.5, 0)
+                        })
+                        task.delay(0.4, function()
+                            Background.Visible = false
+                            Background.Position = UDim2.new(0.5, 0, 0.5, 0)
+                        end)
+                    else
+                        Background.Position = UDim2.new(0.5, 0, 1.5, 0)
+                        Background.Visible = true
+                        Tween(Background, TI_04_EXP_OUT, {
+                            Position = UDim2.new(0.5, 0, 0.5, 0)
+                        })
+                    end
                 end
             end)
         end
