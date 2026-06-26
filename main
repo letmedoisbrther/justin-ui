@@ -661,14 +661,15 @@ function Library:Window(Args)
             })
 
             local Line = Library:Create("Frame", {
-                Name = "Line",
-                Parent = SepHolder,
-                AnchorPoint = Vector2.new(0, 0.5),
-                BackgroundColor3 = STROKE2,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 0.5, 0),
-                Size = UDim2.new(1, 0, 0, 1)
+            Name = "Line",
+            Parent = SepHolder,
+            AnchorPoint = Vector2.new(0, 0.5),
+            BackgroundColor3 = Color3.fromRGB(255, 0, 127),
+            BorderSizePixel = 0,
+            Position = UDim2.new(0, 0, 0.5, 0),
+            Size = UDim2.new(1, 0, 0, 1)
             })
+
             MakeGradient(Line, ColorSequence.new{
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
                 ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 127)),
