@@ -64,7 +64,6 @@ local TI_02_LIN_OUT = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDir
 local TI_025_EXP_OUT = TweenInfo.new(0.25, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 local TI_03_DRAG = TweenInfo.new(0.3)
 local TI_25_BACK_OUT = TweenInfo.new(2.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-local TI_04_EXP_OUT = TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
 function Library:Parent()
     if not RunService:IsStudio() then
@@ -72,6 +71,13 @@ function Library:Parent()
     end
     return PlayerGui
 end
+
+local NO_BORDER = {
+    BackgroundColor3 = WHITE,
+    BackgroundTransparency = 1,
+    BorderColor3 = BLACK,
+    BorderSizePixel = 0,
+}
 
 function Library:Create(Class, Props)
     local inst = Instance.new(Class)
@@ -300,11 +306,11 @@ function Library:NewRows(Parent, Title, Desc)
 end
 
 function Library:Window(Args)
-    local Title = Args.Title or "Xova's Project"
-    local SubTitle = Args.SubTitle or "Made by s1nve"
+    local Title = Args.Title or "Justin's Project"
+    local SubTitle = Args.SubTitle or "Made by @_9333"
 
     local Xova = Library:Create("ScreenGui", {
-        Name = "Xova",
+        Name = "Justin",
         Parent = Library:Parent(),
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
         IgnoreGuiInset = true
@@ -318,10 +324,6 @@ function Library:Window(Args)
         Size = UDim2.new(0, 500, 0, 350)
     })
     MakeCorner(Background, UDim.new(0, 8))
-
-    local isMinimized = false
-    local normalSize = UDim2.new(0, 500, 0, 350)
-    local minimizedSize = UDim2.new(0, 500, 0, 40)
 
     local dropdownInstances = {}
 
@@ -353,6 +355,207 @@ function Library:Window(Args)
         Size = UDim2.new(1, 0, 0, 40)
     })
 
+    local WindowControls = Library:Create("Frame", {
+        Name = "WindowControls", Parent = Header,
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(1, -10, 0.5, 0),
+        Size = UDim2.new(0, 54, 0, 22)
+    })
+    Library:Create("UIListLayout", {
+        Parent = WindowControls,
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 4),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right
+    })
+
+    local MinimizeBtn = Library:Create("Frame", {
+        Name = "MinimizeBtn", Parent = WindowControls,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30), BorderSizePixel = 0,
+        Size = UDim2.new(0, 22, 0, 22),
+        ZIndex = 10
+    })
+    MakeCorner(MinimizeBtn, UDim.new(0, 5))
+    MakeStroke(MinimizeBtn, STROKE2, 1)
+
+    Library:Create("TextLabel", {
+        Parent = MinimizeBtn,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, -1),
+        Size = UDim2.new(1, 0, 0, 14),
+        Font = Enum.Font.GothamBold,
+        Text = "—",
+        TextColor3 = WHITE,
+        TextSize = 12,
+        ZIndex = 11
+    })
+
+    local CloseBtn = Library:Create("Frame", {
+        Name = "CloseBtn", Parent = WindowControls,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30), BorderSizePixel = 0,
+        Size = UDim2.new(0, 22, 0, 22),
+        ZIndex = 10
+    })
+    MakeCorner(CloseBtn, UDim.new(0, 5))
+    MakeStroke(CloseBtn, STROKE2, 1)
+
+    Library:Create("TextLabel", {
+        Parent = CloseBtn,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "✕",
+        TextColor3 = PINK,
+        TextSize = 12,
+        ZIndex = 11
+    })
+
+    local ConfirmPopup = Library:Create("Frame", {
+        Name = "ConfirmPopup", Parent = Background,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = DARK4, BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 220, 0, 110),
+        ZIndex = 1000, Visible = false
+    })
+    MakeCorner(ConfirmPopup, UDim.new(0, 8))
+    MakeStroke(ConfirmPopup, STROKE2, 1)
+
+    Library:Create("ImageLabel", {
+        Name = "Shadow", Parent = ConfirmPopup,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = BLACK, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(1, 80, 1, 80),
+        ZIndex = 999,
+        Image = "rbxassetid://8992230677",
+        ImageColor3 = BLACK, ImageTransparency = 0.4,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(99, 99, 99, 99)
+    })
+
+    Library:Create("UIListLayout", {
+        Parent = ConfirmPopup,
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center
+    })
+    Library:Create("UIPadding", {
+        Parent = ConfirmPopup,
+        PaddingBottom = UDim.new(0, 14), PaddingLeft = UDim.new(0, 14),
+        PaddingRight = UDim.new(0, 14), PaddingTop = UDim.new(0, 14)
+    })
+
+    Library:Create("TextLabel", {
+        Name = "PopupTitle", Parent = ConfirmPopup,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0, LayoutOrder = 1,
+        Size = UDim2.new(1, 0, 0, 14),
+        Font = Enum.Font.GothamBold,
+        Text = "Fechar Justin?",
+        TextColor3 = WHITE, TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 1001
+    })
+
+    Library:Create("TextLabel", {
+        Name = "PopupDesc", Parent = ConfirmPopup,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0, LayoutOrder = 2,
+        Size = UDim2.new(1, 0, 0, 10),
+        Font = Enum.Font.GothamMedium,
+        Text = "Tem certeza que deseja fechar?",
+        TextColor3 = WHITE, TextSize = 10,
+        TextTransparency = 0.5,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 1001
+    })
+
+    local PopupBtns = Library:Create("Frame", {
+        Name = "PopupBtns", Parent = ConfirmPopup,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0, LayoutOrder = 3,
+        Size = UDim2.new(1, 0, 0, 28)
+    })
+    Library:Create("UIListLayout", {
+        Parent = PopupBtns,
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 8),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center
+    })
+
+    local CancelBtn = Library:Create("Frame", {
+        Name = "Cancel", Parent = PopupBtns,
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30), BorderSizePixel = 0,
+        Size = UDim2.new(0, 88, 0, 26),
+        ZIndex = 1001
+    })
+    MakeCorner(CancelBtn, UDim.new(0, 5))
+    MakeStroke(CancelBtn, STROKE2, 1)
+
+    Library:Create("TextLabel", {
+        Parent = CancelBtn,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDIM2_FILL,
+        Font = Enum.Font.GothamSemibold,
+        Text = "Cancelar",
+        TextColor3 = WHITE, TextSize = 11,
+        ZIndex = 1002
+    })
+
+    local ConfirmCloseBtn = Library:Create("Frame", {
+        Name = "Confirm", Parent = PopupBtns,
+        BackgroundColor3 = PINK, BorderSizePixel = 0,
+        Size = UDim2.new(0, 88, 0, 26),
+        ZIndex = 1001
+    })
+    MakeCorner(ConfirmCloseBtn, UDim.new(0, 5))
+    MakeGradient(ConfirmCloseBtn, GRAD_DARK)
+
+    Library:Create("TextLabel", {
+        Parent = ConfirmCloseBtn,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDIM2_FILL,
+        Font = Enum.Font.GothamSemibold,
+        Text = "Fechar",
+        TextColor3 = WHITE, TextSize = 11,
+        ZIndex = 1002
+    })
+
+    local CancelClick = Library:MakeButton(CancelBtn)
+    local ConfirmClick = Library:MakeButton(ConfirmCloseBtn)
+
+    CancelClick.MouseButton1Click:Connect(function()
+        ConfirmPopup.Visible = false
+    end)
+
+    ConfirmClick.MouseButton1Click:Connect(function()
+        Xova:Destroy()
+    end)
+
+    local CloseBtnClick = Library:MakeButton(CloseBtn)
+    CloseBtnClick.MouseButton1Click:Connect(function()
+        ConfirmPopup.Visible = true
+    end)
+
     local Return = Library:Create("ImageLabel", {
         Name = "Return", Parent = Header,
         AnchorPoint = ANCHOR_CENTER,
@@ -367,192 +570,6 @@ function Library:Window(Args)
         ColorSequenceKeypoint.new(0, WHITE),
         ColorSequenceKeypoint.new(1, GRAY3)
     })
-
-    local WindowBtns = Library:Create("Frame", {
-        Name = "WindowBtns", Parent = Header,
-        AnchorPoint = Vector2.new(1, 0.5),
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -10, 0.5, 0),
-        Size = UDim2.new(0, 52, 0, 20),
-        ZIndex = 10
-    })
-    Library:Create("UIListLayout", {
-        Parent = WindowBtns,
-        FillDirection = Enum.FillDirection.Horizontal,
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder
-    })
-
-    local MinimizeBtn = Library:Create("Frame", {
-        Name = "Minimize", Parent = WindowBtns,
-        BackgroundColor3 = DARK3, BorderSizePixel = 0,
-        Size = UDim2.new(0, 20, 0, 20),
-        ZIndex = 10, LayoutOrder = 1
-    })
-    MakeCorner(MinimizeBtn, UDim.new(0, 4))
-    MakeStroke(MinimizeBtn, STROKE2, 0.5)
-
-    Library:Create("ImageLabel", {
-        Parent = MinimizeBtn,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 12, 0, 12),
-        ZIndex = 11,
-        Image = "rbxassetid://7072725342",
-        ImageColor3 = GRAY1
-    })
-
-    local MinimizeClick = Library:MakeButton(MinimizeBtn)
-
-    local CloseBtn = Library:Create("Frame", {
-        Name = "Close", Parent = WindowBtns,
-        BackgroundColor3 = DARK3, BorderSizePixel = 0,
-        Size = UDim2.new(0, 20, 0, 20),
-        ZIndex = 10, LayoutOrder = 2
-    })
-    MakeCorner(CloseBtn, UDim.new(0, 4))
-    MakeStroke(CloseBtn, STROKE3, 0.5)
-
-    Library:Create("ImageLabel", {
-        Parent = CloseBtn,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 12, 0, 12),
-        ZIndex = 11,
-        Image = "rbxassetid://7072725342",
-        ImageColor3 = PINK
-    })
-
-    local CloseClick = Library:MakeButton(CloseBtn)
-
-    local function ShowConfirmPopup()
-        local Overlay = Library:Create("Frame", {
-            Name = "Overlay", Parent = Xova,
-            BackgroundColor3 = BLACK, BackgroundTransparency = 0.5,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, 0, 1, 0),
-            ZIndex = 900
-        })
-
-        local Popup = Library:Create("Frame", {
-            Name = "Popup", Parent = Xova,
-            AnchorPoint = ANCHOR_CENTER,
-            BackgroundColor3 = DARK2, BorderSizePixel = 0,
-            Position = UDim2.new(0.5, 0, 0.4, 0),
-            Size = UDim2.new(0, 260, 0, 110),
-            ZIndex = 1000
-        })
-        MakeCorner(Popup, UDim.new(0, 8))
-        MakeStroke(Popup, STROKE3, 1)
-
-        Library:Create("TextLabel", {
-            Name = "Title", Parent = Popup,
-            AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0.5, 0, 0, 18),
-            Size = UDim2.new(1, -20, 0, 16),
-            Font = Enum.Font.GothamBold,
-            Text = "Destroy the UI?",
-            TextColor3 = PINK, TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            ZIndex = 1001
-        })
-
-        Library:Create("TextLabel", {
-            Name = "Sub", Parent = Popup,
-            AnchorPoint = Vector2.new(0.5, 0),
-            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0.5, 0, 0, 38),
-            Size = UDim2.new(1, -20, 0, 12),
-            Font = Enum.Font.GothamMedium,
-            Text = "This action cannot be undone.",
-            TextColor3 = WHITE, TextSize = 10,
-            TextTransparency = 0.5,
-            TextXAlignment = Enum.TextXAlignment.Center,
-            ZIndex = 1001
-        })
-
-        local BtnHolder = Library:Create("Frame", {
-            Name = "BtnHolder", Parent = Popup,
-            AnchorPoint = Vector2.new(0.5, 1),
-            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0.5, 0, 1, -14),
-            Size = UDim2.new(1, -30, 0, 28),
-            ZIndex = 1001
-        })
-        Library:Create("UIListLayout", {
-            Parent = BtnHolder,
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Center,
-            VerticalAlignment = Enum.VerticalAlignment.Center,
-            Padding = UDim.new(0, 10),
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
-
-        local NoBtn = Library:Create("TextButton", {
-            Name = "No", Parent = BtnHolder,
-            BackgroundColor3 = DARK3, BorderSizePixel = 0,
-            Size = UDim2.new(0, 100, 0, 26),
-            Font = Enum.Font.GothamSemibold,
-            Text = "No",
-            TextColor3 = WHITE, TextSize = 12,
-            ZIndex = 1002, LayoutOrder = 1
-        })
-        MakeCorner(NoBtn)
-        MakeStroke(NoBtn, STROKE2, 0.5)
-
-        local YesBtn = Library:Create("TextButton", {
-            Name = "Yes", Parent = BtnHolder,
-            BackgroundColor3 = PINK, BorderSizePixel = 0,
-            Size = UDim2.new(0, 100, 0, 26),
-            Font = Enum.Font.GothamSemibold,
-            Text = "Yes",
-            TextColor3 = WHITE, TextSize = 12,
-            ZIndex = 1002, LayoutOrder = 2
-        })
-        MakeCorner(YesBtn)
-        MakeGradient(YesBtn, GRAD_DARK)
-
-        Popup.Position = UDim2.new(0.5, 0, 0.3, 0)
-        Tween(Popup, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Position = UDim2.new(0.5, 0, 0.5, 0)
-        })
-
-        NoBtn.MouseButton1Click:Connect(function()
-            Tween(Popup, TI_04_EXP_OUT, { Position = UDim2.new(0.5, 0, 0.3, 0) })
-            task.delay(0.35, function()
-                Overlay:Destroy()
-                Popup:Destroy()
-            end)
-        end)
-
-        YesBtn.MouseButton1Click:Connect(function()
-            Xova:Destroy()
-        end)
-    end
-
-    CloseClick.MouseButton1Click:Connect(function()
-        ShowConfirmPopup()
-    end)
-
-    MinimizeClick.MouseButton1Click:Connect(function()
-        isMinimized = not isMinimized
-        if isMinimized then
-            Tween(Background, TI_04_EXP_OUT, { Size = minimizedSize })
-        else
-            Tween(Background, TI_04_EXP_OUT, { Size = normalSize })
-        end
-    end)
 
     local HeadScale = Library:Create("Frame", {
         Name = "HeadScale", Parent = Header,
@@ -571,7 +588,7 @@ function Library:Window(Args)
     Library:Create("UIPadding", {
         Parent = HeadScale,
         PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15),
-        PaddingRight = UDim.new(0, 60), PaddingTop = UDim.new(0, 20)
+        PaddingRight = UDim.new(0, 65), PaddingTop = UDim.new(0, 20)
     })
 
     local Info = Library:Create("Frame", {
@@ -672,6 +689,17 @@ function Library:Window(Args)
     end)
 
     local PageService = Library:Create("UIPageLayout", { Parent = Scale })
+
+    local isMinimized = false
+    local MinimizeClick = Library:MakeButton(MinimizeBtn)
+    MinimizeClick.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            Tween(Background, TI_03_EXP_OUT, { Size = UDim2.new(0, 500, 0, 40) })
+        else
+            Tween(Background, TI_03_EXP_OUT, { Size = UDim2.new(0, 500, 0, 350) })
+        end
+    end)
 
     local Window = {}
 
@@ -853,6 +881,7 @@ function Library:Window(Args)
                 Position = UDim2.new(0, 0, 0.5, 0),
                 Size = UDim2.new(1, 0, 0, 1)
             })
+
             MakeGradient(Line, ColorSequence.new{
                 ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
                 ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 0, 127)),
@@ -1667,7 +1696,7 @@ function Library:Window(Args)
 
         if Mobile then
             local ToggleScreen = Library:Create("ScreenGui", {
-                Name = "XovaPillow", Parent = Library:Parent(),
+                Name = "JustinPillow", Parent = Library:Parent(),
                 ZIndexBehavior = Enum.ZIndexBehavior.Global,
                 IgnoreGuiInset = true
             })
@@ -1694,33 +1723,13 @@ function Library:Window(Args)
             Library:Draggable(Pillow)
 
             Pillow.MouseButton1Click:Connect(function()
-                if Background.Visible then
-                    Tween(Background, TI_04_EXP_OUT, { Position = UDim2.new(0.5, 0, 1.5, 0) })
-                    task.delay(0.4, function()
-                        Background.Visible = false
-                        Background.Position = UDim2.new(0.5, 0, 0.5, 0)
-                    end)
-                else
-                    Background.Position = UDim2.new(0.5, 0, 1.5, 0)
-                    Background.Visible = true
-                    Tween(Background, TI_04_EXP_OUT, { Position = UDim2.new(0.5, 0, 0.5, 0) })
-                end
+                Background.Visible = not Background.Visible
             end)
         else
             UserInputService.InputBegan:Connect(function(Input, Processed)
                 if Processed then return end
                 if Input.KeyCode == Enum.KeyCode.K then
-                    if Background.Visible then
-                        Tween(Background, TI_04_EXP_OUT, { Position = UDim2.new(0.5, 0, 1.5, 0) })
-                        task.delay(0.4, function()
-                            Background.Visible = false
-                            Background.Position = UDim2.new(0.5, 0, 0.5, 0)
-                        end)
-                    else
-                        Background.Position = UDim2.new(0.5, 0, 1.5, 0)
-                        Background.Visible = true
-                        Tween(Background, TI_04_EXP_OUT, { Position = UDim2.new(0.5, 0, 0.5, 0) })
-                    end
+                    Background.Visible = not Background.Visible
                 end
             end)
         end
