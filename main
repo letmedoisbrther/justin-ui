@@ -461,30 +461,27 @@ function Library:Window(Args)
         ZIndex = 6
     })
 
+    local PopupOverlay = Library:Create("Frame", {
+        Name = "PopupOverlay", Parent = Background,
+        AnchorPoint = ANCHOR_CENTER,
+        BackgroundColor3 = BLACK, BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDIM2_FILL,
+        ZIndex = 999, Visible = false
+    })
+    MakeCorner(PopupOverlay, UDim.new(0, 8))
+
     local ConfirmPopup = Library:Create("Frame", {
         Name = "ConfirmPopup", Parent = Background,
         AnchorPoint = ANCHOR_CENTER,
         BackgroundColor3 = DARK4, BorderSizePixel = 0,
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 220, 0, 110),
+        Size = UDim2.new(0, 230, 0, 115),
         ZIndex = 1000, Visible = false
     })
     MakeCorner(ConfirmPopup, UDim.new(0, 8))
     MakeStroke(ConfirmPopup, STROKE2, 1)
-
-    Library:Create("ImageLabel", {
-        Name = "Shadow", Parent = ConfirmPopup,
-        AnchorPoint = ANCHOR_CENTER,
-        BackgroundColor3 = BLACK, BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 80, 1, 80),
-        ZIndex = 999,
-        Image = "rbxassetid://8992230677",
-        ImageColor3 = BLACK, ImageTransparency = 0.4,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(99, 99, 99, 99)
-    })
 
     Library:Create("UIListLayout", {
         Parent = ConfirmPopup,
@@ -505,7 +502,7 @@ function Library:Window(Args)
         BorderSizePixel = 0, LayoutOrder = 1,
         Size = UDim2.new(1, 0, 0, 14),
         Font = Enum.Font.GothamBold,
-        Text = "Fechar Justin?",
+        Text = "Close the script?",
         TextColor3 = WHITE, TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 1001
@@ -517,7 +514,7 @@ function Library:Window(Args)
         BorderSizePixel = 0, LayoutOrder = 2,
         Size = UDim2.new(1, 0, 0, 10),
         Font = Enum.Font.GothamMedium,
-        Text = "Tem certeza que deseja fechar?",
+        Text = "Are you sure you want to close?",
         TextColor3 = WHITE, TextSize = 10,
         TextTransparency = 0.5,
         TextXAlignment = Enum.TextXAlignment.Center,
@@ -555,7 +552,7 @@ function Library:Window(Args)
         Position = UDim2.new(0.5, 0, 0.5, 0),
         Size = UDIM2_FILL,
         Font = Enum.Font.GothamSemibold,
-        Text = "Cancelar",
+        Text = "Cancel",
         TextColor3 = WHITE, TextSize = 11,
         ZIndex = 1002
     })
@@ -576,7 +573,7 @@ function Library:Window(Args)
         Position = UDim2.new(0.5, 0, 0.5, 0),
         Size = UDIM2_FILL,
         Font = Enum.Font.GothamSemibold,
-        Text = "Fechar",
+        Text = "Close",
         TextColor3 = WHITE, TextSize = 11,
         ZIndex = 1002
     })
@@ -586,6 +583,7 @@ function Library:Window(Args)
 
     CancelClick.MouseButton1Click:Connect(function()
         ConfirmPopup.Visible = false
+        PopupOverlay.Visible = false
     end)
 
     ConfirmClick.MouseButton1Click:Connect(function()
@@ -594,6 +592,7 @@ function Library:Window(Args)
 
     local CloseBtnClick = Library:MakeButton(CloseBtn)
     CloseBtnClick.MouseButton1Click:Connect(function()
+        PopupOverlay.Visible = true
         ConfirmPopup.Visible = true
     end)
 
