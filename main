@@ -390,6 +390,8 @@ function Library:NewRows(Parent, Title, Desc)
     })
     Library:Create("UIListLayout", {
         Parent = Right,
+        Padding = UDim.new(0, 8),
+        FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Right,
         SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Center
@@ -1197,6 +1199,521 @@ function Library:Window(Args)
 
             if Data.Value then OnChanged(Data.Value) end
             return Attr
+        end
+
+        function Page:KeybindToggle(Args)
+            local ToggleValue = Args.Value or false
+            local KeyValue    = Args.Key or Enum.KeyCode.Unknown
+            local Callback    = Args.Callback or function() end
+
+            local Rows  = Library:NewRows(PageScrolling, Args.Title, Args.Desc)
+            local Right = Rows.Vectorize.Right
+            local Left  = Rows.Vectorize.Left.Text
+            local TitleLbl = Left.Title
+
+            local KeyBtn = Library:Create("Frame", {
+                Name = "Keybind", Parent = Right,
+                BackgroundColor3 = DARK1, BorderSizePixel = 0,
+                LayoutOrder = -2,
+                Size = UDim2.new(0, 46, 0, 22)
+            })
+            MakeCorner(KeyBtn, UDim.new(0, 6))
+            local KeyStroke = MakeStroke(KeyBtn, STROKE2, 1)
+
+            local KeyLabel = Library:Create("TextLabel", {
+                Name = "Title", Parent = KeyBtn,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDIM2_FILL,
+                Font = Enum.Font.GothamBold, RichText = true,
+                Text = KeyValue ~= Enum.KeyCode.Unknown and KeyValue.Name or "...",
+                TextColor3 = WHITE, TextSize = 11,
+                TextStrokeTransparency = 0.7
+            })
+
+            local ToggleBg = Library:Create("Frame", {
+                Name = "Background", Parent = Right,
+                BackgroundColor3 = DARK1, BorderColor3 = BLACK, BorderSizePixel = 0,
+                LayoutOrder = -1,
+                Size = UDim2.new(0, 20, 0, 20)
+            })
+            local ToggleStroke = MakeStroke(ToggleBg)
+            MakeCorner(ToggleBg, UDim.new(0, 5))
+
+            local Highlight = Library:Create("Frame", {
+                Name = "Highligh", Parent = ToggleBg,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = PINK, BackgroundTransparency = 1,
+                BorderColor3 = BLACK, BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0, 20, 0, 20)
+            })
+            MakeCorner(Highlight, UDim.new(0, 5))
+            MakeGradient(Highlight, GRAD_DARK)
+
+            local CheckImg = Library:Create("ImageLabel", {
+                Parent = Highlight,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderColor3 = BLACK, BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0.45, 0, 0.45, 0),
+                Image = "rbxassetid://86682186031062",
+                ImageTransparency = 1
+            })
+
+            local Data = { Title = Args.Title, Desc = Args.Desc, Value = ToggleValue, Key = KeyValue }
+
+            local function OnToggleChanged(val)
+                Callback(val, Data.Key)
+                if val then
+                    TitleLbl.TextColor3 = PINK
+                    ToggleStroke.Thickness = 0
+                    Tween(Highlight, TI_05_EXP_OUT, { BackgroundTransparency = 0 })
+                    Tween(CheckImg,  TI_05_EXP_OUT, { ImageTransparency = 0 })
+                    Tween(CheckImg,  TI_03_EXP_OUT, { Size = UDim2.new(0.5, 0, 0.5, 0) })
+                    Tween(KeyStroke, TI_02_EXP_OUT, { Color = PINK, Thickness = 1 })
+                else
+                    TitleLbl.TextColor3 = WHITE
+                    ToggleStroke.Thickness = 0.5
+                    Tween(Highlight, TI_05_EXP_OUT, { BackgroundTransparency = 1 })
+                    Tween(CheckImg,  TI_05_EXP_OUT, { ImageTransparency = 1 })
+                    Tween(KeyStroke, TI_02_EXP_OUT, { Color = STROKE2, Thickness = 1 })
+                end
+            end
+
+            local ToggleClick = Library:MakeButton(ToggleBg)
+            ToggleClick.MouseButton1Click:Connect(function()
+                if Library:IsDropdownOpen() then return end
+                Data.Value = not Data.Value
+                OnToggleChanged(Data.Value)
+            end)
+
+            local listening = false
+            local listenConn = nil
+
+            local function StopListening()
+                listening = false
+                if listenConn then listenConn:Disconnect(); listenConn = nil end
+                Tween(KeyBtn, TI_02_EXP_OUT, { BackgroundColor3 = DARK1 })
+            end
+
+            local KeyClick = Library:MakeButton(KeyBtn)
+            KeyClick.MouseButton1Click:Connect(function()
+                if Library:IsDropdownOpen() then return end
+                if listening then StopListening(); return end
+                listening = true
+                KeyLabel.Text = "..."
+                Tween(KeyBtn, TI_02_EXP_OUT, { BackgroundColor3 = Color3.fromRGB(40, 10, 25) })
+
+                listenConn = UserInputService.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        Data.Key = input.KeyCode
+                        KeyLabel.Text = Data.Key.Name
+                        StopListening()
+                    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        StopListening()
+                    end
+                end)
+            end)
+
+            UserInputService.InputBegan:Connect(function(input, processed)
+                if processed then return end
+                if listening then return end
+                if Data.Value and Data.Key ~= Enum.KeyCode.Unknown and input.KeyCode == Data.Key then
+                    Callback(true, Data.Key)
+                end
+            end)
+
+            if Data.Value then OnToggleChanged(true) end
+
+            local Setting = setmetatable({}, {
+                __newindex = function(t, k, v)
+                    rawset(Data, k, v)
+                    if k == "Title" then Left.Title.Text = tostring(v)
+                    elseif k == "Desc" then Left.Desc.Text = tostring(v)
+                    elseif k == "Value" then Data.Value = v; OnToggleChanged(v)
+                    elseif k == "Key" then
+                        Data.Key = v
+                        KeyLabel.Text = v ~= Enum.KeyCode.Unknown and v.Name or "..."
+                    end
+                end,
+                __index = Data
+            })
+
+            return Setting
+        end
+
+        function Page:ColorToggle(Args)
+            local ToggleValue = Args.Value or false
+            local ColorValue  = Args.Color or Color3.fromRGB(255, 0, 127)
+            local Callback    = Args.Callback or function() end
+
+            local Rows  = Library:NewRows(PageScrolling, Args.Title, Args.Desc)
+            local Right = Rows.Vectorize.Right
+            local Left  = Rows.Vectorize.Left.Text
+            local TitleLbl = Left.Title
+
+            local Preview = Library:Create("Frame", {
+                Name = "Preview", Parent = Right,
+                BackgroundColor3 = ColorValue, BorderSizePixel = 0,
+                LayoutOrder = -2,
+                Size = UDim2.new(0, 30, 0, 22)
+            })
+            MakeCorner(Preview, UDim.new(0, 6))
+            MakeStroke(Preview, STROKE2, 1)
+
+            local ToggleBg = Library:Create("Frame", {
+                Name = "Background", Parent = Right,
+                BackgroundColor3 = DARK1, BorderColor3 = BLACK, BorderSizePixel = 0,
+                LayoutOrder = -1,
+                Size = UDim2.new(0, 20, 0, 20)
+            })
+            local ToggleStroke = MakeStroke(ToggleBg)
+            MakeCorner(ToggleBg, UDim.new(0, 5))
+
+            local Highlight = Library:Create("Frame", {
+                Name = "Highligh", Parent = ToggleBg,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = PINK, BackgroundTransparency = 1,
+                BorderColor3 = BLACK, BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0, 20, 0, 20)
+            })
+            MakeCorner(Highlight, UDim.new(0, 5))
+            MakeGradient(Highlight, GRAD_DARK)
+
+            local CheckImg = Library:Create("ImageLabel", {
+                Parent = Highlight,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderColor3 = BLACK, BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0.45, 0, 0.45, 0),
+                Image = "rbxassetid://86682186031062",
+                ImageTransparency = 1
+            })
+
+            local Data = { Title = Args.Title, Desc = Args.Desc, Value = ToggleValue, Color = ColorValue }
+
+            local function OnToggleChanged(val)
+                Callback(val, Data.Color)
+                if val then
+                    TitleLbl.TextColor3 = PINK
+                    ToggleStroke.Thickness = 0
+                    Tween(Highlight, TI_05_EXP_OUT, { BackgroundTransparency = 0 })
+                    Tween(CheckImg,  TI_05_EXP_OUT, { ImageTransparency = 0 })
+                    Tween(CheckImg,  TI_03_EXP_OUT, { Size = UDim2.new(0.5, 0, 0.5, 0) })
+                else
+                    TitleLbl.TextColor3 = WHITE
+                    ToggleStroke.Thickness = 0.5
+                    Tween(Highlight, TI_05_EXP_OUT, { BackgroundTransparency = 1 })
+                    Tween(CheckImg,  TI_05_EXP_OUT, { ImageTransparency = 1 })
+                end
+            end
+
+            local ToggleClick = Library:MakeButton(ToggleBg)
+            ToggleClick.MouseButton1Click:Connect(function()
+                if Library:IsDropdownOpen() then return end
+                Data.Value = not Data.Value
+                OnToggleChanged(Data.Value)
+            end)
+
+            local OpenBtn = Library:MakeButton(Preview)
+
+            local Picker = Library:Create("Frame", {
+                Name = "ColorPicker", Parent = Background,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = DARK4, BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.3, 0),
+                Size = UDim2.new(0, 240, 0, 280),
+                ZIndex = 500, Selectable = false, Visible = false
+            })
+            MakeCorner(Picker)
+            MakeStroke(Picker, STROKE2)
+            table.insert(dropdownInstances, Picker)
+
+            Library:Create("UIListLayout", {
+                Parent = Picker,
+                Padding = UDim.new(0, 8),
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center
+            })
+            Library:Create("UIPadding", {
+                Parent = Picker,
+                PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12),
+                PaddingRight = UDim.new(0, 12), PaddingTop = UDim.new(0, 12)
+            })
+
+            local PickerTitle = Library:Create("TextLabel", {
+                Name = "Title", Parent = Picker,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0, LayoutOrder = -5,
+                Size = UDim2.new(1, 0, 0, 14),
+                ZIndex = 500,
+                Font = Enum.Font.GothamSemibold, RichText = true,
+                Text = Args.Title or "Color",
+                TextColor3 = PINK, TextSize = 14,
+                TextStrokeTransparency = 0.7,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+            MakeGradient(PickerTitle, GRAD_WHITE)
+
+            local SatVal = Library:Create("Frame", {
+                Name = "SatVal", Parent = Picker,
+                BackgroundColor3 = Color3.fromHSV(0, 1, 1), BorderSizePixel = 0,
+                LayoutOrder = -4,
+                Size = UDim2.new(1, 0, 0, 140),
+                ZIndex = 500, ClipsDescendants = true, Selectable = false
+            })
+            MakeCorner(SatVal, UDim.new(0, 5))
+
+            local WhiteGrad = Library:Create("Frame", {
+                Name = "WhiteGrad", Parent = SatVal,
+                BackgroundColor3 = WHITE, BorderSizePixel = 0,
+                Size = UDIM2_FILL, ZIndex = 500
+            })
+            MakeGradient(WhiteGrad, ColorSequence.new{
+                ColorSequenceKeypoint.new(0, WHITE),
+                ColorSequenceKeypoint.new(1, WHITE)
+            }, 0)
+            WhiteGrad.UIGradient.Transparency = NumberSequence.new{
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1)
+            }
+
+            local BlackGrad = Library:Create("Frame", {
+                Name = "BlackGrad", Parent = SatVal,
+                BackgroundColor3 = BLACK, BorderSizePixel = 0,
+                Size = UDIM2_FILL, ZIndex = 500
+            })
+            MakeGradient(BlackGrad, ColorSequence.new{
+                ColorSequenceKeypoint.new(0, BLACK),
+                ColorSequenceKeypoint.new(1, BLACK)
+            }, 90)
+            BlackGrad.UIGradient.Transparency = NumberSequence.new{
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(1, 0)
+            }
+
+            local SVCursor = Library:Create("Frame", {
+                Name = "Cursor", Parent = SatVal,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BorderSizePixel = 0,
+                Position = UDim2.new(1, 0, 0, 0),
+                Size = UDim2.new(0, 10, 0, 10),
+                ZIndex = 502, Selectable = false
+            })
+            MakeCorner(SVCursor, UDim.new(1, 0))
+            MakeStroke(SVCursor, BLACK, 1.5)
+
+            local SVClick = Library:MakeButton(SatVal)
+
+            local HueBar = Library:Create("Frame", {
+                Name = "Hue", Parent = Picker,
+                BackgroundColor3 = WHITE, BorderSizePixel = 0,
+                LayoutOrder = -3,
+                Size = UDim2.new(1, 0, 0, 16),
+                ZIndex = 500, Selectable = false
+            })
+            MakeCorner(HueBar, UDim.new(0, 5))
+            Library:Create("UIGradient", {
+                Parent = HueBar,
+                Color = ColorSequence.new{
+                    ColorSequenceKeypoint.new(0.000, Color3.fromHSV(0/6, 1, 1)),
+                    ColorSequenceKeypoint.new(0.166, Color3.fromHSV(1/6, 1, 1)),
+                    ColorSequenceKeypoint.new(0.333, Color3.fromHSV(2/6, 1, 1)),
+                    ColorSequenceKeypoint.new(0.500, Color3.fromHSV(3/6, 1, 1)),
+                    ColorSequenceKeypoint.new(0.666, Color3.fromHSV(4/6, 1, 1)),
+                    ColorSequenceKeypoint.new(0.833, Color3.fromHSV(5/6, 1, 1)),
+                    ColorSequenceKeypoint.new(1.000, Color3.fromHSV(6/6, 1, 1))
+                },
+                Rotation = 0
+            })
+
+            local HueCursor = Library:Create("Frame", {
+                Name = "Cursor", Parent = HueBar,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0.5, 0),
+                Size = UDim2.new(0, 6, 1, 6),
+                ZIndex = 502, Selectable = false
+            })
+            MakeCorner(HueCursor, UDim.new(0, 3))
+            MakeStroke(HueCursor, BLACK, 1.5)
+
+            local HueClick = Library:MakeButton(HueBar)
+
+            local RGBRow = Library:Create("Frame", {
+                Name = "RGB", Parent = Picker,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0, LayoutOrder = -2,
+                Size = UDim2.new(1, 0, 0, 30),
+                ZIndex = 500
+            })
+            Library:Create("UIListLayout", {
+                Parent = RGBRow,
+                Padding = UDim.new(0, 6),
+                FillDirection = Enum.FillDirection.Horizontal,
+                SortOrder = Enum.SortOrder.LayoutOrder
+            })
+
+            local function MakeRGBBox(label)
+                local Box = Library:Create("Frame", {
+                    Name = label, Parent = RGBRow,
+                    BackgroundColor3 = DARK3, BorderSizePixel = 0,
+                    Size = UDim2.new(0, 64, 1, 0),
+                    ZIndex = 500
+                })
+                MakeCorner(Box, UDim.new(0, 4))
+                MakeStroke(Box)
+
+                Library:Create("TextLabel", {
+                    Name = "Tag", Parent = Box,
+                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 6, 0, 2),
+                    Size = UDim2.new(0, 20, 0, 10),
+                    ZIndex = 501,
+                    Font = Enum.Font.GothamBold, Text = label,
+                    TextColor3 = PINK, TextSize = 9,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+
+                local Box_Input = Library:Create("TextBox", {
+                    Name = "Input", Parent = Box,
+                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 6, 0, 12),
+                    Size = UDim2.new(1, -12, 0, 14),
+                    ZIndex = 501,
+                    Font = Enum.Font.GothamMedium,
+                    Text = "0", TextColor3 = WHITE, TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+
+                return Box_Input
+            end
+
+            local RBox = MakeRGBBox("R")
+            local GBox = MakeRGBBox("G")
+            local BBox = MakeRGBBox("B")
+
+            local Hue, Sat, Val = Color3.toHSV(Data.Color)
+
+            local function UpdateFromHSV(skipBoxes)
+                local color = Color3.fromHSV(Hue, Sat, Val)
+                Data.Color = color
+                Preview.BackgroundColor3 = color
+                SatVal.BackgroundColor3 = Color3.fromHSV(Hue, 1, 1)
+                SVCursor.Position = UDim2.new(Sat, 0, 1 - Val, 0)
+                HueCursor.Position = UDim2.new(Hue, 0, 0.5, 0)
+                if not skipBoxes then
+                    RBox.Text = tostring(math.floor(color.R * 255 + 0.5))
+                    GBox.Text = tostring(math.floor(color.G * 255 + 0.5))
+                    BBox.Text = tostring(math.floor(color.B * 255 + 0.5))
+                end
+                Callback(Data.Value, color)
+            end
+
+            local draggingSV, draggingHue = false, false
+
+            SVClick.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSV = true
+                end
+            end)
+            SVClick.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingSV = false
+                end
+            end)
+
+            HueClick.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingHue = true
+                end
+            end)
+            HueClick.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    draggingHue = false
+                end
+            end)
+
+            UserInputService.InputChanged:Connect(function(input)
+                if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+                if draggingSV then
+                    local rx = math.clamp((input.Position.X - SatVal.AbsolutePosition.X) / SatVal.AbsoluteSize.X, 0, 1)
+                    local ry = math.clamp((input.Position.Y - SatVal.AbsolutePosition.Y) / SatVal.AbsoluteSize.Y, 0, 1)
+                    Sat = rx
+                    Val = 1 - ry
+                    UpdateFromHSV()
+                elseif draggingHue then
+                    local rx = math.clamp((input.Position.X - HueBar.AbsolutePosition.X) / HueBar.AbsoluteSize.X, 0, 1)
+                    Hue = rx
+                    UpdateFromHSV()
+                end
+            end)
+
+            local function CommitRGB()
+                local r = math.clamp(tonumber(RBox.Text) or 0, 0, 255)
+                local g = math.clamp(tonumber(GBox.Text) or 0, 0, 255)
+                local b = math.clamp(tonumber(BBox.Text) or 0, 0, 255)
+                local color = Color3.fromRGB(r, g, b)
+                Hue, Sat, Val = Color3.toHSV(color)
+                UpdateFromHSV(true)
+            end
+
+            RBox.FocusLost:Connect(CommitRGB)
+            GBox.FocusLost:Connect(CommitRGB)
+            BBox.FocusLost:Connect(CommitRGB)
+
+            local isOpen = false
+
+            UserInputService.InputBegan:Connect(function(A)
+                if not isOpen then return end
+                if A.UserInputType ~= Enum.UserInputType.MouseButton1 and A.UserInputType ~= Enum.UserInputType.Touch then return end
+                local mouse = LocalPlayer:GetMouse()
+                local PBP, PBS = Picker.AbsolutePosition, Picker.AbsoluteSize
+                if not (mouse.X >= PBP.X and mouse.X <= PBP.X + PBS.X and mouse.Y >= PBP.Y and mouse.Y <= PBP.Y + PBS.Y) then
+                    isOpen = false
+                    Picker.Visible = false
+                    Picker.Position = UDim2.new(0.5, 0, 0.3, 0)
+                end
+            end)
+
+            OpenBtn.MouseButton1Click:Connect(function()
+                if Library:IsDropdownOpen() and not isOpen then return end
+                isOpen = not isOpen
+                if isOpen then
+                    Picker.Visible = true
+                    Tween(Picker, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, 0, 0.5, 0) })
+                else
+                    Picker.Visible = false
+                    Picker.Position = UDim2.new(0.5, 0, 0.3, 0)
+                end
+            end)
+
+            UpdateFromHSV()
+            if Data.Value then OnToggleChanged(true) end
+
+            local Setting = setmetatable({}, {
+                __newindex = function(t, k, v)
+                    rawset(Data, k, v)
+                    if k == "Title" then Left.Title.Text = tostring(v)
+                    elseif k == "Desc" then Left.Desc.Text = tostring(v)
+                    elseif k == "Value" then Data.Value = v; OnToggleChanged(v)
+                    elseif k == "Color" then
+                        Hue, Sat, Val = Color3.toHSV(v)
+                        UpdateFromHSV()
+                    end
+                end,
+                __index = Data
+            })
+
+            return Setting
         end
 
         function Page:Slider(Args)
@@ -2287,13 +2804,6 @@ function Library:Window(Args)
                 PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4)
             })
 
-            local function isInTable(val, tbl)
-                for _, v in tbl do
-                    if v == val then return true end
-                end
-                return false
-            end
-
             local Selected = {}
             for _, v in ipairs(Value) do Selected[v] = true end
 
@@ -2302,14 +2812,15 @@ function Library:Window(Args)
             for _, name in ipairs(List) do
                 local Row = Library:Create("Frame", {
                     Name = "Row", Parent = Container,
-                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BackgroundColor3 = DARK4, BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 26)
+                    Size = UDim2.new(1, 0, 0, 30)
                 })
-                Library:Create("UIPadding", { Parent = Row, PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) })
+                MakeCorner(Row, UDim.new(0, 5))
+                Library:Create("UIPadding", { Parent = Row, PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) })
                 Library:Create("UIListLayout", {
                     Parent = Row,
-                    Padding = UDim.new(0, 8),
+                    Padding = UDim.new(0, 10),
                     FillDirection = Enum.FillDirection.Horizontal,
                     SortOrder = Enum.SortOrder.LayoutOrder,
                     VerticalAlignment = Enum.VerticalAlignment.Center
@@ -2319,20 +2830,30 @@ function Library:Window(Args)
                     Name = "Box", Parent = Row,
                     BackgroundColor3 = DARK1, BorderSizePixel = 0,
                     LayoutOrder = -1,
-                    Size = UDim2.new(0, 16, 0, 16)
+                    Size = UDim2.new(0, 18, 0, 18)
                 })
-                MakeCorner(Box, UDim.new(0, 3))
-                local BoxStroke = MakeStroke(Box)
+                MakeCorner(Box, UDim.new(0, 5))
+                local BoxStroke = MakeStroke(Box, STROKE2, 1)
+
+                local Highlight = Library:Create("Frame", {
+                    Name = "Highlight", Parent = Box,
+                    AnchorPoint = ANCHOR_CENTER,
+                    BackgroundColor3 = PINK, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Size = UDim2.new(1, 0, 1, 0)
+                })
+                MakeCorner(Highlight, UDim.new(0, 5))
+                MakeGradient(Highlight, GRAD_DARK)
 
                 local Check = Library:Create("ImageLabel", {
-                    Parent = Box,
+                    Parent = Highlight,
                     AnchorPoint = ANCHOR_CENTER,
                     BackgroundColor3 = WHITE, BackgroundTransparency = 1,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0.5, 0, 0.5, 0),
-                    Size = UDim2.new(0.7, 0, 0.7, 0),
+                    Size = UDim2.new(0.65, 0, 0.65, 0),
                     Image = "rbxassetid://86682186031062",
-                    ImageColor3 = PINK,
                     ImageTransparency = 1
                 })
 
@@ -2340,7 +2861,7 @@ function Library:Window(Args)
                     Name = "Name", Parent = Row,
                     BackgroundColor3 = WHITE, BackgroundTransparency = 1,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, -24, 1, 0),
+                    Size = UDim2.new(1, -28, 1, 0),
                     Font = Enum.Font.GothamMedium, RichText = true,
                     Text = tostring(name),
                     TextColor3 = WHITE, TextSize = 12,
@@ -2350,19 +2871,18 @@ function Library:Window(Args)
 
                 local function Refresh(animated)
                     local on = Selected[name] == true
-                    if on then
-                        NameLabel.TextColor3 = PINK
-                        BoxStroke.Thickness = 0
-                        Box.BackgroundColor3 = PINK
-                    else
-                        NameLabel.TextColor3 = WHITE
-                        BoxStroke.Thickness = 0.5
-                        Box.BackgroundColor3 = DARK1
-                    end
                     if animated then
-                        Tween(Check, TI_02_EXP_OUT, { ImageTransparency = on and 0 or 1 })
+                        Tween(Highlight, TI_03_EXP_OUT, { BackgroundTransparency = on and 0 or 1 })
+                        Tween(Check,     TI_03_EXP_OUT, { ImageTransparency = on and 0 or 1 })
+                        Tween(NameLabel, TI_02_EXP_OUT, { TextColor3 = on and PINK or WHITE })
+                        Tween(BoxStroke, TI_02_EXP_OUT, { Thickness = on and 0 or 1 })
+                        Tween(Row,       TI_02_EXP_OUT, { BackgroundTransparency = on and 0.9 or 1 })
                     else
+                        Highlight.BackgroundTransparency = on and 0 or 1
                         Check.ImageTransparency = on and 0 or 1
+                        NameLabel.TextColor3 = on and PINK or WHITE
+                        BoxStroke.Thickness = on and 0 or 1
+                        Row.BackgroundTransparency = on and 0.9 or 1
                     end
                 end
 
@@ -2371,7 +2891,8 @@ function Library:Window(Args)
                 local RowClick = Library:MakeButton(Row)
                 RowClick.MouseButton1Click:Connect(function()
                     if Library:IsDropdownOpen() then return end
-                    Selected[name] = not Selected[name] or nil
+                    Selected[name] = not Selected[name]
+                    if not Selected[name] then Selected[name] = nil end
                     Refresh(true)
                     local sel = {}
                     for _, n in ipairs(List) do
