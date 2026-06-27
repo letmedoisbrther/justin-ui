@@ -2134,6 +2134,80 @@ function Library:Window(Args)
             return TextBox
         end
 
+        -- NEW: simple text field (no copy button), updates live as you type.
+        -- Use this for things like naming a config, where you just want to
+        -- type a value and have it tracked immediately, without needing to
+        -- press Enter or click a copy/paste button.
+        function Page:TextField(Args)
+            local Value       = Args.Value or ""
+            local Placeholder = Args.Placeholder or "Type here..."
+            local Callback    = Args.Callback or function() end
+
+            local InputFrame = Library:Create("Frame", {
+                Name = "TextField", Parent = PageScrolling,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, 0, 0, 30),
+                Selectable = false
+            })
+
+            local Front = Library:Create("Frame", {
+                Name = "Front", Parent = InputFrame,
+                BackgroundColor3 = DARK3, BorderSizePixel = 0,
+                Size = UDIM2_FILL,
+                Selectable = false
+            })
+            MakeCorner(Front, UDim.new(0, 2))
+            MakeStroke(Front)
+
+            local TextBox = Library:Create("TextBox", {
+                Parent = Front,
+                AnchorPoint = ANCHOR_CENTER,
+                BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(1, -20, 1, 0),
+                Font = Enum.Font.GothamMedium,
+                PlaceholderColor3 = Color3.fromRGB(55, 55, 55),
+                PlaceholderText = Placeholder,
+                Text = tostring(Value),
+                TextColor3 = GRAY2, TextSize = 11,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+
+            -- Track text live, not just on Enter/FocusLost.
+            TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+                Value = TextBox.Text
+                Callback(Value)
+            end)
+
+            TextBox.FocusLost:Connect(function()
+                Value = TextBox.Text
+                Callback(Value)
+            end)
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Input",
+                    GetValue = function() return TextBox.Text end,
+                    SetValue = function(v)
+                        TextBox.Text = tostring(v)
+                        Value = TextBox.Text
+                        Callback(TextBox.Text)
+                    end
+                }
+            end
+
+            local Setting = {}
+            function Setting:Get() return Value end
+            function Setting:Set(v)
+                TextBox.Text = tostring(v)
+                Value = TextBox.Text
+            end
+
+            return Setting
+        end
+
         function Page:Dropdown(Args)
             local List    = Args.List
             local Value   = Args.Value
@@ -3347,8 +3421,9 @@ function Library:Window(Args)
         ConfigsPage:Section("Salvar Config")
 
         local configNameValue = ""
-        ConfigsPage:Input({
+        ConfigsPage:TextField({
             Value = "",
+            Placeholder = "Digite o nome do config...",
             Callback = function(text)
                 configNameValue = text
             end
