@@ -3346,7 +3346,7 @@ function Library:Window(Args)
         end
     end
 
-    do
+    task.defer(function()
         local ConfigsPage = Window:NewPage({
             Title = "Configs",
             Desc  = "Salvar e carregar configurações",
@@ -3492,7 +3492,7 @@ function Library:Window(Args)
         })
 
         RefreshConfigsList()
-    end
+    end)
 
     return Window
 end
