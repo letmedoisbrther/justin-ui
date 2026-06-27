@@ -248,7 +248,6 @@ function Library:Notify(Args)
     local Title    = Args.Title or "Notification"
     local Desc     = Args.Desc or ""
     local Duration = Args.Duration or 4
-    local Icon     = Args.Icon
 
     local gui = Library:Parent()
     local ToastGui = nil
@@ -1077,6 +1076,8 @@ function Library:Window(Args)
 
         local Page = {}
         Page.PageScrolling = PageScrolling
+
+        function Page:Section(Text)
             local lbl = Library:Create("TextLabel", {
                 Name = "Title", Parent = PageScrolling,
                 AnchorPoint = ANCHOR_CENTER,
@@ -1086,7 +1087,7 @@ function Library:Window(Args)
                 Position = UDim2.new(0.5, 0, 0.5, 0),
                 Size = UDim2.new(1, 0, 0, 20),
                 Font = Enum.Font.GothamBold, RichText = true,
-                Text = " " .. Text,
+                Text = " " .. tostring(Text),
                 TextColor3 = WHITE, TextSize = 15,
                 TextStrokeTransparency = 0.7,
                 TextXAlignment = Enum.TextXAlignment.Left
@@ -3234,15 +3235,6 @@ function Library:Window(Args)
 
                 if i == 1 then firstPanel = Panel end
 
-                local SubPage = {}
-
-                function SubPage:Section(Text) return Page.Section(setmetatable({}, {__index = {Section = nil}}), Text) end
-
-                local function buildPageFns(scrollParent)
-                    local proxy = setmetatable({}, { __index = Page })
-                    return proxy
-                end
-
                 local NavClick = Library:MakeButton(NavBtn)
                 NavClick.MouseButton1Click:Connect(function()
                     for _, b in navButtons do
@@ -3255,7 +3247,6 @@ function Library:Window(Args)
                 table.insert(navButtons, { Btn = NavBtn, Label = NavLabel, Panel = Panel })
 
                 if tabDef.Build then
-                    local originalParent = PageScrolling
                     local fakePage = setmetatable({}, { __index = Page })
                     tabDef.Build(fakePage, Panel)
                 end
