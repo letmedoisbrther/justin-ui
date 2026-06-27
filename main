@@ -6,6 +6,23 @@ local UserInputService = game:GetService('UserInputService')
 local TweenService = game:GetService('TweenService')
 local CoreGui = game:GetService('CoreGui')
 
+local IconsLoaded, Icons = pcall(function()
+    return loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
+end)
+if IconsLoaded and Icons then
+    Icons.SetIconsType("lucide")
+else
+    Icons = nil
+end
+
+function Library:GetIcon(name)
+    if Icons and type(name) == "string" and not name:find("rbxassetid://") and not tonumber(name) then
+        local ok, result = pcall(function() return Icons.GetIcon(name) end)
+        if ok and result then return result end
+    end
+    return Library:Asset(name)
+end
+
 local Mobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer.PlayerGui
@@ -714,7 +731,7 @@ function Library:Window(Args)
             BorderColor3 = BLACK, BorderSizePixel = 0,
             LayoutOrder = -1,
             Size = UDim2.new(0, 25, 0, 25),
-            Image = Library:Asset(PageIcon),
+            Image = Library:GetIcon(PageIcon),
             ImageColor3 = PINK
         })
         MakeGradient(TabIcon, GRAD_WHITE)
