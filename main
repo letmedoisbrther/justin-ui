@@ -5,6 +5,7 @@ local RunService = game:GetService('RunService')
 local UserInputService = game:GetService('UserInputService')
 local TweenService = game:GetService('TweenService')
 local CoreGui = game:GetService('CoreGui')
+local HttpService = game:GetService('HttpService')
 
 local IconsLoaded, Icons = pcall(function()
     return loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))()
@@ -851,6 +852,91 @@ function Library:Window(Args)
     local PageService = Library:Create("UIPageLayout", { Parent = Scale })
 
     local Window = {}
+    Window.Flags = {}
+
+    local configDir = "Library"
+    local configSubDir = configDir .. "/" .. Title:gsub("[^%w]", "_")
+
+    local function ensureConfigDir()
+        pcall(function()
+            if not isfolder(configDir) then makefolder(configDir) end
+            if not isfolder(configSubDir) then makefolder(configSubDir) end
+        end)
+    end
+
+    function Window:SaveConfig(name)
+        if not name or name == "" then return false end
+        ensureConfigDir()
+        local data = {}
+        for flag, info in pairs(Window.Flags) do
+            local entry = { Flag = flag, Type = info.Type }
+            if info.Type == "ColorPicker" or info.Type == "ColorToggle" then
+                local vals = info.GetValue()
+                local col, extra = vals[1], vals[2]
+                entry.Value = { R = col.R, G = col.G, B = col.B }
+                if info.Type == "ColorToggle" then entry.Extra = extra end
+            elseif info.Type == "Keybind" then
+                local val = info.GetValue()
+                entry.Value = typeof(val) == "EnumItem" and val.Name or tostring(val)
+            elseif info.Type == "KeybindToggle" then
+                local val, key = info.GetValue()
+                entry.Value = val
+                entry.Extra = typeof(key) == "EnumItem" and key.Name or tostring(key)
+            else
+                entry.Value = info.GetValue()
+            end
+            table.insert(data, entry)
+        end
+        local ok = pcall(function()
+            writefile(configSubDir .. "/" .. name .. ".json", HttpService:JSONEncode(data))
+        end)
+        return ok
+    end
+
+    function Window:LoadConfig(name)
+        local path = configSubDir .. "/" .. name .. ".json"
+        local ok, content = pcall(readfile, path)
+        if not ok or not content then return false end
+        local ok2, data = pcall(function() return HttpService:JSONDecode(content) end)
+        if not ok2 or not data then return false end
+        for _, entry in ipairs(data) do
+            local info = Window.Flags[entry.Flag]
+            if info and entry.Value ~= nil then
+                if entry.Type == "ColorPicker" then
+                    local v = entry.Value
+                    info.SetValue(Color3.new(v.R, v.G, v.B))
+                elseif entry.Type == "ColorToggle" then
+                    local v = entry.Value
+                    info.SetValue(entry.Extra, Color3.new(v.R, v.G, v.B))
+                elseif entry.Type == "Keybind" then
+                    local key = Enum.KeyCode[entry.Value]
+                    if key then info.SetValue(key) end
+                elseif entry.Type == "KeybindToggle" then
+                    local key = Enum.KeyCode[entry.Extra]
+                    info.SetValue(entry.Value, key)
+                else
+                    info.SetValue(entry.Value)
+                end
+            end
+        end
+        return true
+    end
+
+    function Window:GetConfigList()
+        local list = {}
+        pcall(function()
+            ensureConfigDir()
+            for _, path in ipairs(listfiles(configSubDir)) do
+                local name = path:match("([^/\\]+)%.json$")
+                if name then table.insert(list, name) end
+            end
+        end)
+        return list
+    end
+
+    function Window:DeleteConfig(name)
+        pcall(delfile, configSubDir .. "/" .. name .. ".json")
+    end
 
     function Window:NewPage(Args)
         local PageTitle = Args.Title or "Unknown"
@@ -990,8 +1076,7 @@ function Library:Window(Args)
         end
 
         local Page = {}
-
-        function Page:Section(Text)
+        Page.PageScrolling = PageScrolling
             local lbl = Library:Create("TextLabel", {
                 Name = "Title", Parent = PageScrolling,
                 AnchorPoint = ANCHOR_CENTER,
@@ -1198,6 +1283,15 @@ function Library:Window(Args)
             end)
 
             if Data.Value then OnChanged(Data.Value) end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Toggle",
+                    GetValue = function() return Data.Value end,
+                    SetValue = function(v) Data.Value = v; OnChanged(v) end
+                }
+            end
+
             return Attr
         end
 
@@ -1328,6 +1422,21 @@ function Library:Window(Args)
             end)
 
             if Data.Value then OnToggleChanged(true) end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "KeybindToggle",
+                    GetValue = function() return Data.Value, Data.Key end,
+                    SetValue = function(v, key)
+                        Data.Value = v
+                        if key then
+                            Data.Key = key
+                            KeyLabel.Text = key ~= Enum.KeyCode.Unknown and key.Name or "..."
+                        end
+                        OnToggleChanged(v)
+                    end
+                }
+            end
 
             local Setting = setmetatable({}, {
                 __newindex = function(t, k, v)
@@ -1699,6 +1808,21 @@ function Library:Window(Args)
             UpdateFromHSV()
             if Data.Value then OnToggleChanged(true) end
 
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "ColorToggle",
+                    GetValue = function() return { Data.Color, Data.Value } end,
+                    SetValue = function(val, color)
+                        Data.Value = val
+                        if color then
+                            Hue, Sat, Val = Color3.toHSV(color)
+                            UpdateFromHSV()
+                        end
+                        OnToggleChanged(val)
+                    end
+                }
+            end
+
             local Setting = setmetatable({}, {
                 __newindex = function(t, k, v)
                     rawset(Data, k, v)
@@ -1900,6 +2024,19 @@ function Library:Window(Args)
             end)
 
             UpdateSlider(Value)
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Slider",
+                    GetValue = function() return Value end,
+                    SetValue = function(v) Value = UpdateSlider(v) end
+                }
+            end
+
+            return {
+                SetValue = function(self, v) Value = UpdateSlider(v) end,
+                GetValue = function(self) return Value end
+            }
         end
 
         function Page:Input(Args)
@@ -1980,6 +2117,18 @@ function Library:Window(Args)
                     EnterIcon.Image = "rbxassetid://78020815235467"
                 end)
             end)
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Input",
+                    GetValue = function() return TextBox.Text end,
+                    SetValue = function(v)
+                        TextBox.Text = tostring(v)
+                        Value = TextBox.Text
+                        Callback(TextBox.Text)
+                    end
+                }
+            end
 
             return TextBox
         end
@@ -2188,6 +2337,7 @@ function Library:Window(Args)
             end)
 
             local Setting = {}
+            local selectorFns = {}
 
             function Setting:Clear(a)
                 for _, v in ipairs(ListFrame:GetChildren()) do
@@ -2294,6 +2444,7 @@ function Library:Window(Args)
                 end)
 
                 ItemClick.MouseButton1Click:Connect(OnSelected)
+                selectorFns[tostring(Name)] = OnSelected
             end
 
             SearchBox.Changed:Connect(function()
@@ -2307,6 +2458,23 @@ function Library:Window(Args)
 
             for _, name in ipairs(List) do
                 Setting:AddList(name)
+            end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Dropdown",
+                    GetValue = function() return Value end,
+                    SetValue = function(v)
+                        Setting:Clear()
+                        if type(v) == "table" then
+                            for _, n in ipairs(v) do
+                                if selectorFns[tostring(n)] then selectorFns[tostring(n)]() end
+                            end
+                        else
+                            if selectorFns[tostring(v)] then selectorFns[tostring(v)]() end
+                        end
+                    end
+                }
             end
 
             return Setting
@@ -2624,6 +2792,18 @@ function Library:Window(Args)
                 Hue, Sat, Val = Color3.toHSV(color)
                 UpdateFromHSV()
             end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "ColorPicker",
+                    GetValue = function() return { Value } end,
+                    SetValue = function(color)
+                        Hue, Sat, Val = Color3.toHSV(color)
+                        UpdateFromHSV()
+                    end
+                }
+            end
+
             return Setting
         end
 
@@ -2690,6 +2870,18 @@ function Library:Window(Args)
                 Value = key
                 KeyLabel.Text = key ~= Enum.KeyCode.Unknown and key.Name or "None"
             end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Keybind",
+                    GetValue = function() return Value end,
+                    SetValue = function(key)
+                        Value = key
+                        KeyLabel.Text = key ~= Enum.KeyCode.Unknown and key.Name or "None"
+                    end
+                }
+            end
+
             return Setting
         end
 
@@ -2773,6 +2965,14 @@ function Library:Window(Args)
                 Callback(TextBox.Text)
             end)
 
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "Textarea",
+                    GetValue = function() return TextBox.Text end,
+                    SetValue = function(v) TextBox.Text = tostring(v) end
+                }
+            end
+
             return TextBox
         end
 
@@ -2808,6 +3008,7 @@ function Library:Window(Args)
             for _, v in ipairs(Value) do Selected[v] = true end
 
             local Setting = {}
+            local refreshFns = {}
 
             for _, name in ipairs(List) do
                 local Row = Library:Create("Frame", {
@@ -2887,6 +3088,7 @@ function Library:Window(Args)
                 end
 
                 Refresh(false)
+                refreshFns[name] = Refresh
 
                 local RowClick = Library:MakeButton(Row)
                 RowClick.MouseButton1Click:Connect(function()
@@ -2902,6 +3104,29 @@ function Library:Window(Args)
                 end)
 
                 Setting[name] = Row
+            end
+
+            if Args.Flag then
+                Window.Flags[Args.Flag] = {
+                    Type = "CheckboxList",
+                    GetValue = function()
+                        local sel = {}
+                        for _, n in ipairs(List) do
+                            if Selected[n] then table.insert(sel, n) end
+                        end
+                        return sel
+                    end,
+                    SetValue = function(v)
+                        for _, n in ipairs(List) do Selected[n] = nil end
+                        for _, n in ipairs(v) do Selected[n] = true end
+                        for n, fn in pairs(refreshFns) do fn(true) end
+                        local sel = {}
+                        for _, n in ipairs(List) do
+                            if Selected[n] then table.insert(sel, n) end
+                        end
+                        Callback(sel)
+                    end
+                }
             end
 
             return Setting
@@ -3119,6 +3344,154 @@ function Library:Window(Args)
                 Scaler.Scale = v
             end)
         end
+    end
+
+    do
+        local ConfigsPage = Window:NewPage({
+            Title = "Configs",
+            Desc  = "Salvar e carregar configurações",
+            Icon  = "settings"
+        })
+
+        ConfigsPage:Section("Salvar Config")
+
+        local configNameValue = ""
+        ConfigsPage:Input({
+            Value = "",
+            Callback = function(text)
+                configNameValue = text
+            end
+        })
+
+        local ConfigsListContainer
+
+        local function RefreshConfigsList()
+            if not ConfigsListContainer then return end
+            for _, child in ipairs(ConfigsListContainer:GetChildren()) do
+                if child.Name == "Rows" then child:Destroy() end
+            end
+
+            local list = Window:GetConfigList()
+            if #list == 0 then
+                Library:Create("TextLabel", {
+                    Name = "Rows", Parent = ConfigsListContainer,
+                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 20),
+                    Font = Enum.Font.GothamMedium, Text = "Nenhum config salvo.",
+                    TextColor3 = GRAY2, TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+                return
+            end
+
+            for _, cfgName in ipairs(list) do
+                local Rows = Library:NewRows(ConfigsListContainer, cfgName, "")
+                local Right = Rows.Vectorize.Right
+
+                local LoadBtnFrame = Library:Create("Frame", {
+                    Name = "LoadBtn", Parent = Right,
+                    BackgroundColor3 = PINK, BorderSizePixel = 0,
+                    Size = UDim2.new(0, 68, 0, 24)
+                })
+                MakeCorner(LoadBtnFrame)
+                MakeGradient(LoadBtnFrame, GRAD_DARK)
+
+                Library:Create("TextLabel", {
+                    Parent = LoadBtnFrame,
+                    AnchorPoint = ANCHOR_CENTER,
+                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Size = UDIM2_FILL,
+                    Font = Enum.Font.GothamSemibold,
+                    Text = "Carregar",
+                    TextColor3 = WHITE, TextSize = 10
+                })
+
+                local LoadClick = Library:MakeButton(LoadBtnFrame)
+                LoadClick.MouseButton1Click:Connect(function()
+                    local ok = Window:LoadConfig(cfgName)
+                    Library:Notify({
+                        Title = ok and "Config carregado" or "Erro",
+                        Desc  = ok and ("\"" .. cfgName .. "\" carregado com sucesso.") or "Falha ao carregar o config.",
+                        Duration = 3
+                    })
+                end)
+
+                local DelBtnFrame = Library:Create("Frame", {
+                    Name = "DelBtn", Parent = Right,
+                    BackgroundColor3 = Color3.fromRGB(40, 10, 16), BorderSizePixel = 0,
+                    Size = UDim2.new(0, 28, 0, 24)
+                })
+                MakeCorner(DelBtnFrame)
+                MakeStroke(DelBtnFrame, STROKE3, 1)
+
+                Library:Create("TextLabel", {
+                    Parent = DelBtnFrame,
+                    AnchorPoint = ANCHOR_CENTER,
+                    BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Size = UDIM2_FILL,
+                    Font = Enum.Font.GothamBold,
+                    Text = "×",
+                    TextColor3 = PINK, TextSize = 14
+                })
+
+                local DelClick = Library:MakeButton(DelBtnFrame)
+                DelClick.MouseButton1Click:Connect(function()
+                    Window:DeleteConfig(cfgName)
+                    Library:Notify({
+                        Title = "Config deletado",
+                        Desc  = "\"" .. cfgName .. "\" foi removido.",
+                        Duration = 3
+                    })
+                    RefreshConfigsList()
+                end)
+            end
+        end
+
+        ConfigsPage:Button({
+            Title = "Salvar configuração atual",
+            Desc  = "Digite um nome no campo acima e clique para salvar",
+            Text  = "Salvar",
+            Callback = function()
+                if not configNameValue or configNameValue == "" then
+                    Library:Notify({
+                        Title = "Configs",
+                        Desc  = "Digite um nome para o config.",
+                        Duration = 3
+                    })
+                    return
+                end
+                local ok = Window:SaveConfig(configNameValue)
+                Library:Notify({
+                    Title = ok and "Config salvo" or "Erro",
+                    Desc  = ok and ("\"" .. configNameValue .. "\" foi salvo.") or "Falha ao salvar o config.",
+                    Duration = 3
+                })
+                RefreshConfigsList()
+            end
+        })
+
+        ConfigsPage:Separator()
+        ConfigsPage:Section("Configs Salvos")
+
+        ConfigsListContainer = Library:Create("Frame", {
+            Name = "ConfigsListContainer", Parent = ConfigsPage.PageScrolling,
+            BackgroundColor3 = WHITE, BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Size = UDim2.new(1, 0, 0, 0)
+        })
+        Library:Create("UIListLayout", {
+            Parent = ConfigsListContainer,
+            Padding = UDim.new(0, 5),
+            SortOrder = Enum.SortOrder.LayoutOrder
+        })
+
+        RefreshConfigsList()
     end
 
     return Window
