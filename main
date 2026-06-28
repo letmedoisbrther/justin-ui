@@ -967,12 +967,8 @@ function Library:Window(Args)
 
     function Window:DeleteConfig(name)
         local path = configSubDir .. "/" .. name .. ".json"
-        pcall(delfile, path)
-        local stillExists = false
-        pcall(function()
-            stillExists = isfile and isfile(path) or false
-        end)
-        return not stillExists
+        local ok = pcall(delfile, path)
+        return ok
     end
 
     function Window:NewPage(Args)
@@ -3628,7 +3624,8 @@ function Library:Window(Args)
                         Desc  = removed and ("\"" .. cfgName .. "\" foi removido.") or "Falha ao deletar o config.",
                         Duration = 3
                     })
-                    task.defer(RefreshConfigsList)
+                    task.wait(0.05)
+                    RefreshConfigsList()
                 end)
             end
         end
