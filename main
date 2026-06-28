@@ -853,10 +853,21 @@ function Library:Window(Args)
     local Window = {}
     Window.Flags = {}
 
+    local _usedFlags = {}
     local function ResolveFlag(Args)
-        if Args.Flag and Args.Flag ~= "" then return Args.Flag end
-        if Args.Title and Args.Title ~= "" then return Args.Title end
-        return nil
+        local base = (Args.Flag and Args.Flag ~= "") and Args.Flag
+            or (Args.Title and Args.Title ~= "") and Args.Title
+            or nil
+        if not base then return nil end
+        if not _usedFlags[base] then
+            _usedFlags[base] = 1
+            return base
+        end
+        if Args.Flag and Args.Flag ~= "" then
+            return base
+        end
+        _usedFlags[base] += 1
+        return base .. " #" .. tostring(_usedFlags[base])
     end
 
     local configDir = "Library"
@@ -955,7 +966,13 @@ function Library:Window(Args)
     end
 
     function Window:DeleteConfig(name)
-        pcall(delfile, configSubDir .. "/" .. name .. ".json")
+        local path = configSubDir .. "/" .. name .. ".json"
+        pcall(delfile, path)
+        local stillExists = false
+        pcall(function()
+            stillExists = isfile and isfile(path) or false
+        end)
+        return not stillExists
     end
 
     function Window:NewPage(Args)
@@ -2446,19 +2463,29 @@ function Library:Window(Args)
 
             local Setting = {}
             local selectorFns = {}
+            local itemRefs = {}
 
             function Setting:Clear(a)
+                if a == nil then
+                    for key, ref in pairs(itemRefs) do
+                        if IsMulti then
+                            ref.ApplyMulti(false, true)
+                        else
+                            ref.ItemTitle.TextColor3 = WHITE
+                            ref.Item.BackgroundTransparency = 1
+                        end
+                    end
+                    Value = IsMulti and {} or nil
+                    selectedValues = {}; selectedOrder = 0
+                    DDDesc.Text = "None"; Left.Desc.Text = "None"
+                    return
+                end
                 for _, v in ipairs(ListFrame:GetChildren()) do
                     if v:IsA("Frame") then
-                        local shouldClear = a == nil
-                            or (type(a) == "string" and v.Title.Text == a)
+                        local shouldClear = (type(a) == "string" and v.Title.Text == a)
                             or (type(a) == "table" and isInTable(v.Title.Text, a))
                         if shouldClear then v:Destroy() end
                     end
-                end
-                if a == nil then
-                    Value = nil; selectedValues = {}; selectedOrder = 0
-                    DDDesc.Text = "None"; Left.Desc.Text = "None"
                 end
             end
 
@@ -2495,49 +2522,56 @@ function Library:Window(Args)
 
                 local ItemClick = Library:MakeButton(ItemTitle)
 
-                local function OnSelected()
-                    if IsMulti then
-                        if selectedValues[Name] then
-                            selectedValues[Name] = nil
-                            Item.LayoutOrder = 0
-                            OnValue(false)
-                        else
+                local function ApplySelectedMulti(val, silent)
+                    if val then
+                        if not selectedValues[Name] then
                             selectedOrder -= 1
                             selectedValues[Name] = selectedOrder
                             Item.LayoutOrder = selectedOrder
-                            OnValue(true)
                         end
-                        local sel = {}
-                        for i in selectedValues do table.insert(sel, i) end
-                        if #sel > 0 then
-                            table.sort(sel)
-                            Value = sel
-                            Settext()
-                        else
-                            DDDesc.Text = "N/A"; Left.Desc.Text = "N/A"
-                        end
-                        pcall(Callback, sel)
                     else
-                        for _, v in ListFrame:GetChildren() do
-                            if v:IsA("Frame") and v.Name == 'NewList' then
-                                v.Title.TextColor3 = WHITE
-                                Tween(v, TI_02_LIN_OUT, { BackgroundTransparency = 1 })
-                            end
-                        end
-                        OnValue(true)
-                        Value = Name
+                        selectedValues[Name] = nil
+                        Item.LayoutOrder = 0
+                    end
+                    OnValue(val)
+                    if silent then return end
+                    local sel = {}
+                    for i in selectedValues do table.insert(sel, i) end
+                    if #sel > 0 then
+                        table.sort(sel)
+                        Value = sel
                         Settext()
-                        pcall(Callback, Value)
+                    else
+                        Value = {}
+                        DDDesc.Text = "N/A"; Left.Desc.Text = "N/A"
+                    end
+                    pcall(Callback, sel)
+                end
+
+                local function ApplySelectedSingle(silent)
+                    for _, ref in pairs(itemRefs) do
+                        ref.ItemTitle.TextColor3 = WHITE
+                        Tween(ref.Item, TI_02_LIN_OUT, { BackgroundTransparency = 1 })
+                    end
+                    OnValue(true)
+                    Value = Name
+                    if silent then return end
+                    Settext()
+                    pcall(Callback, Value)
+                end
+
+                local function OnSelected()
+                    if IsMulti then
+                        ApplySelectedMulti(not selectedValues[Name], false)
+                    else
+                        ApplySelectedSingle(false)
                     end
                 end
 
                 task.defer(function()
                     if IsMulti then
                         if isInTable(Name, Value) then
-                            selectedOrder -= 1
-                            selectedValues[Name] = selectedOrder
-                            Item.LayoutOrder = selectedOrder
-                            OnValue(true)
+                            ApplySelectedMulti(true, true)
                             local sel = {}
                             for i in selectedValues do table.insert(sel, i) end
                             if #sel > 0 then table.sort(sel); Settext()
@@ -2546,13 +2580,20 @@ function Library:Window(Args)
                         end
                     else
                         if Name == Value then
-                            OnValue(true); Settext(); pcall(Callback, Value)
+                            ApplySelectedSingle(true)
+                            Settext()
+                            pcall(Callback, Value)
                         end
                     end
                 end)
 
                 ItemClick.MouseButton1Click:Connect(OnSelected)
                 selectorFns[tostring(Name)] = OnSelected
+                itemRefs[tostring(Name)] = {
+                    Item = Item, ItemTitle = ItemTitle,
+                    ApplyMulti = ApplySelectedMulti,
+                    ApplySingle = ApplySelectedSingle
+                }
             end
 
             SearchBox.Changed:Connect(function()
@@ -2575,13 +2616,35 @@ function Library:Window(Args)
                     Type = "Dropdown",
                     GetValue = function() return Value end,
                     SetValue = function(v)
-                        Setting:Clear()
-                        if type(v) == "table" then
-                            for _, n in ipairs(v) do
-                                if selectorFns[tostring(n)] then selectorFns[tostring(n)]() end
+                        if IsMulti then
+                            for key, ref in pairs(itemRefs) do
+                                ref.ApplyMulti(false, true)
                             end
+                            selectedValues = {}; selectedOrder = 0
+                            if type(v) == "table" then
+                                for _, n in ipairs(v) do
+                                    local ref = itemRefs[tostring(n)]
+                                    if ref then ref.ApplyMulti(true, true) end
+                                end
+                            end
+                            local sel = {}
+                            for i in selectedValues do table.insert(sel, i) end
+                            if #sel > 0 then
+                                table.sort(sel)
+                                Value = sel
+                                Settext()
+                            else
+                                Value = {}
+                                DDDesc.Text = "N/A"; Left.Desc.Text = "N/A"
+                            end
+                            pcall(Callback, sel)
                         else
-                            if selectorFns[tostring(v)] then selectorFns[tostring(v)]() end
+                            local ref = itemRefs[tostring(v)]
+                            if ref then
+                                ref.ApplySingle(true)
+                                Settext()
+                                pcall(Callback, Value)
+                            end
                         end
                     end
                 }
@@ -3477,7 +3540,9 @@ function Library:Window(Args)
         local function RefreshConfigsList()
             if not ConfigsListContainer then return end
             for _, child in ipairs(ConfigsListContainer:GetChildren()) do
-                if child.Name == "Rows" then child:Destroy() end
+                if child.Name == "Rows" then
+                    pcall(function() child:Destroy() end)
+                end
             end
 
             local list = Window:GetConfigList()
@@ -3519,13 +3584,17 @@ function Library:Window(Args)
                 })
 
                 local LoadClick = Library:MakeButton(LoadBtnFrame)
+                local loadBusy = false
                 LoadClick.MouseButton1Click:Connect(function()
+                    if loadBusy then return end
+                    loadBusy = true
                     local ok = Window:LoadConfig(cfgName)
                     Library:Notify({
                         Title = ok and "Config carregado" or "Erro",
                         Desc  = ok and ("\"" .. cfgName .. "\" carregado com sucesso.") or "Falha ao carregar o config.",
                         Duration = 3
                     })
+                    task.delay(0.5, function() loadBusy = false end)
                 end)
 
                 local DelBtnFrame = Library:Create("Frame", {
@@ -3549,14 +3618,17 @@ function Library:Window(Args)
                 })
 
                 local DelClick = Library:MakeButton(DelBtnFrame)
+                local delBusy = false
                 DelClick.MouseButton1Click:Connect(function()
-                    Window:DeleteConfig(cfgName)
+                    if delBusy then return end
+                    delBusy = true
+                    local removed = Window:DeleteConfig(cfgName)
                     Library:Notify({
-                        Title = "Config deletado",
-                        Desc  = "\"" .. cfgName .. "\" foi removido.",
+                        Title = removed and "Config deletado" or "Erro",
+                        Desc  = removed and ("\"" .. cfgName .. "\" foi removido.") or "Falha ao deletar o config.",
                         Duration = 3
                     })
-                    RefreshConfigsList()
+                    task.defer(RefreshConfigsList)
                 end)
             end
         end
