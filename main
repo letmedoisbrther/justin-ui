@@ -853,6 +853,12 @@ function Library:Window(Args)
     local Window = {}
     Window.Flags = {}
 
+    local function ResolveFlag(Args)
+        if Args.Flag and Args.Flag ~= "" then return Args.Flag end
+        if Args.Title and Args.Title ~= "" then return Args.Title end
+        return nil
+    end
+
     local configDir = "Library"
     local configSubDir = configDir .. "/" .. Title:gsub("[^%w]", "_")
 
@@ -868,28 +874,41 @@ function Library:Window(Args)
         ensureConfigDir()
         local data = {}
         for flag, info in pairs(Window.Flags) do
-            local entry = { Flag = flag, Type = info.Type }
-            if info.Type == "ColorPicker" or info.Type == "ColorToggle" then
-                local vals = info.GetValue()
-                local col, extra = vals[1], vals[2]
-                entry.Value = { R = col.R, G = col.G, B = col.B }
-                if info.Type == "ColorToggle" then entry.Extra = extra end
-            elseif info.Type == "Keybind" then
-                local val = info.GetValue()
-                entry.Value = typeof(val) == "EnumItem" and val.Name or tostring(val)
-            elseif info.Type == "KeybindToggle" then
-                local val, key = info.GetValue()
-                entry.Value = val
-                entry.Extra = typeof(key) == "EnumItem" and key.Name or tostring(key)
-            else
-                entry.Value = info.GetValue()
+            local ok, entry = pcall(function()
+                local e = { Flag = flag, Type = info.Type }
+                if info.Type == "ColorPicker" then
+                    local vals = info.GetValue()
+                    local col = vals and vals[1]
+                    if col then
+                        e.Value = { R = col.R, G = col.G, B = col.B }
+                    end
+                elseif info.Type == "ColorToggle" then
+                    local vals = info.GetValue()
+                    local col, extra = vals and vals[1], vals and vals[2]
+                    if col then
+                        e.Value = { R = col.R, G = col.G, B = col.B }
+                        e.Extra = extra and true or false
+                    end
+                elseif info.Type == "Keybind" then
+                    local val = info.GetValue()
+                    e.Value = (typeof(val) == "EnumItem") and val.Name or "Unknown"
+                elseif info.Type == "KeybindToggle" then
+                    local val, key = info.GetValue()
+                    e.Value = val and true or false
+                    e.Extra = (typeof(key) == "EnumItem") and key.Name or "Unknown"
+                else
+                    e.Value = info.GetValue()
+                end
+                return e
+            end)
+            if ok and entry and entry.Value ~= nil then
+                table.insert(data, entry)
             end
-            table.insert(data, entry)
         end
-        local ok = pcall(function()
+        local ok2 = pcall(function()
             writefile(configSubDir .. "/" .. name .. ".json", HttpService:JSONEncode(data))
         end)
-        return ok
+        return ok2
     end
 
     function Window:LoadConfig(name)
@@ -901,21 +920,23 @@ function Library:Window(Args)
         for _, entry in ipairs(data) do
             local info = Window.Flags[entry.Flag]
             if info and entry.Value ~= nil then
-                if entry.Type == "ColorPicker" then
-                    local v = entry.Value
-                    info.SetValue(Color3.new(v.R, v.G, v.B))
-                elseif entry.Type == "ColorToggle" then
-                    local v = entry.Value
-                    info.SetValue(entry.Extra, Color3.new(v.R, v.G, v.B))
-                elseif entry.Type == "Keybind" then
-                    local key = Enum.KeyCode[entry.Value]
-                    if key then info.SetValue(key) end
-                elseif entry.Type == "KeybindToggle" then
-                    local key = Enum.KeyCode[entry.Extra]
-                    info.SetValue(entry.Value, key)
-                else
-                    info.SetValue(entry.Value)
-                end
+                pcall(function()
+                    if entry.Type == "ColorPicker" then
+                        local v = entry.Value
+                        info.SetValue(Color3.new(v.R, v.G, v.B))
+                    elseif entry.Type == "ColorToggle" then
+                        local v = entry.Value
+                        info.SetValue(entry.Extra == true, Color3.new(v.R, v.G, v.B))
+                    elseif entry.Type == "Keybind" then
+                        local key = Enum.KeyCode[entry.Value]
+                        if key then info.SetValue(key) end
+                    elseif entry.Type == "KeybindToggle" then
+                        local key = Enum.KeyCode[entry.Extra]
+                        info.SetValue(entry.Value == true, key)
+                    else
+                        info.SetValue(entry.Value)
+                    end
+                end)
             end
         end
         return true
@@ -1285,8 +1306,10 @@ function Library:Window(Args)
 
             if Data.Value then OnChanged(Data.Value) end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Toggle",
                     GetValue = function() return Data.Value end,
                     SetValue = function(v) Data.Value = v; OnChanged(v) end
@@ -1424,8 +1447,10 @@ function Library:Window(Args)
 
             if Data.Value then OnToggleChanged(true) end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "KeybindToggle",
                     GetValue = function() return Data.Value, Data.Key end,
                     SetValue = function(v, key)
@@ -1809,8 +1834,10 @@ function Library:Window(Args)
             UpdateFromHSV()
             if Data.Value then OnToggleChanged(true) end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "ColorToggle",
                     GetValue = function() return { Data.Color, Data.Value } end,
                     SetValue = function(val, color)
@@ -2026,8 +2053,10 @@ function Library:Window(Args)
 
             UpdateSlider(Value)
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Slider",
                     GetValue = function() return Value end,
                     SetValue = function(v) Value = UpdateSlider(v) end
@@ -2119,8 +2148,10 @@ function Library:Window(Args)
                 end)
             end)
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Input",
                     GetValue = function() return TextBox.Text end,
                     SetValue = function(v)
@@ -2186,8 +2217,10 @@ function Library:Window(Args)
                 Callback(Value)
             end)
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Input",
                     GetValue = function() return TextBox.Text end,
                     SetValue = function(v)
@@ -2535,8 +2568,10 @@ function Library:Window(Args)
                 Setting:AddList(name)
             end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Dropdown",
                     GetValue = function() return Value end,
                     SetValue = function(v)
@@ -2868,8 +2903,10 @@ function Library:Window(Args)
                 UpdateFromHSV()
             end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "ColorPicker",
                     GetValue = function() return { Value } end,
                     SetValue = function(color)
@@ -2946,8 +2983,10 @@ function Library:Window(Args)
                 KeyLabel.Text = key ~= Enum.KeyCode.Unknown and key.Name or "None"
             end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Keybind",
                     GetValue = function() return Value end,
                     SetValue = function(key)
@@ -3040,8 +3079,10 @@ function Library:Window(Args)
                 Callback(TextBox.Text)
             end)
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "Textarea",
                     GetValue = function() return TextBox.Text end,
                     SetValue = function(v) TextBox.Text = tostring(v) end
@@ -3181,8 +3222,10 @@ function Library:Window(Args)
                 Setting[name] = Row
             end
 
-            if Args.Flag then
-                Window.Flags[Args.Flag] = {
+            local _Flag = ResolveFlag(Args)
+
+            if _Flag then
+                Window.Flags[_Flag] = {
                     Type = "CheckboxList",
                     GetValue = function()
                         local sel = {}
