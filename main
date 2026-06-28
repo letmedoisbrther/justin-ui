@@ -881,7 +881,7 @@ function Library:Window(Args)
     end
 
     function Window:SaveConfig(name)
-        if not name or name == "" then return false end
+        if not name or name == "" then return false, 0 end
         ensureConfigDir()
         local data = {}
         for flag, info in pairs(Window.Flags) do
@@ -907,6 +907,13 @@ function Library:Window(Args)
                     local val, key = info.GetValue()
                     e.Value = val and true or false
                     e.Extra = (typeof(key) == "EnumItem") and key.Name or "Unknown"
+                elseif info.Type == "CheckboxList" then
+                    local sel = info.GetValue()
+                    e.Value = sel or {}
+                elseif info.Type == "Slider" then
+                    e.Value = tonumber(info.GetValue())
+                elseif info.Type == "Toggle" then
+                    e.Value = info.GetValue() == true
                 else
                     e.Value = info.GetValue()
                 end
@@ -919,7 +926,21 @@ function Library:Window(Args)
         local ok2 = pcall(function()
             writefile(configSubDir .. "/" .. name .. ".json", HttpService:JSONEncode(data))
         end)
-        return ok2
+        return ok2, #data
+    end
+
+    local function NormalizeArray(v)
+        if type(v) ~= "table" then
+            if v == nil then return {} end
+            return { v }
+        end
+        local out = {}
+        local n = 0
+        for _, item in pairs(v) do
+            n += 1
+            out[n] = item
+        end
+        return out
     end
 
     function Window:LoadConfig(name)
@@ -931,7 +952,7 @@ function Library:Window(Args)
         for _, entry in ipairs(data) do
             local info = Window.Flags[entry.Flag]
             if info and entry.Value ~= nil then
-                pcall(function()
+                local applyOk, applyErr = pcall(function()
                     if entry.Type == "ColorPicker" then
                         local v = entry.Value
                         info.SetValue(Color3.new(v.R, v.G, v.B))
@@ -944,10 +965,26 @@ function Library:Window(Args)
                     elseif entry.Type == "KeybindToggle" then
                         local key = Enum.KeyCode[entry.Extra]
                         info.SetValue(entry.Value == true, key)
+                    elseif entry.Type == "CheckboxList" then
+                        info.SetValue(NormalizeArray(entry.Value))
+                    elseif entry.Type == "Dropdown" then
+                        if type(entry.Value) == "table" then
+                            info.SetValue(NormalizeArray(entry.Value))
+                        else
+                            info.SetValue(entry.Value)
+                        end
+                    elseif entry.Type == "Slider" then
+                        local num = tonumber(entry.Value)
+                        if num then info.SetValue(num) end
+                    elseif entry.Type == "Toggle" then
+                        info.SetValue(entry.Value == true)
                     else
                         info.SetValue(entry.Value)
                     end
                 end)
+                if not applyOk then
+                    warn("[Library] Falha ao carregar flag '" .. tostring(entry.Flag) .. "' (" .. tostring(entry.Type) .. "): " .. tostring(applyErr))
+                end
             end
         end
         return true
@@ -963,6 +1000,19 @@ function Library:Window(Args)
             end
         end)
         return list
+    end
+
+    function Window:DebugFlags()
+        local lines = {}
+        for flag, info in pairs(Window.Flags) do
+            local ok, val = pcall(info.GetValue)
+            table.insert(lines, tostring(flag) .. " (" .. tostring(info.Type) .. ") = " .. (ok and tostring(val) or "ERRO"))
+        end
+        table.sort(lines)
+        for _, l in ipairs(lines) do
+            print("[Library Flags] " .. l)
+        end
+        return lines
     end
 
     function Window:DeleteConfig(name)
@@ -3643,11 +3693,11 @@ function Library:Window(Args)
                     })
                     return
                 end
-                local ok = Window:SaveConfig(configNameValue)
+                local ok, count = Window:SaveConfig(configNameValue)
                 Library:Notify({
                     Title = ok and "Config salvo" or "Erro",
-                    Desc  = ok and ("\"" .. configNameValue .. "\" foi salvo.") or "Falha ao salvar o config.",
-                    Duration = 3
+                    Desc  = ok and ("\"" .. configNameValue .. "\" salvo (" .. tostring(count or 0) .. " itens).") or "Falha ao salvar o config.",
+                    Duration = 4
                 })
                 RefreshConfigsList()
             end
